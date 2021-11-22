@@ -33,21 +33,21 @@ The commands are case-insensitive, but the `<arguments>` are case-sensitive.
 
 The high-level overview how the server application is implemented.
 
-There are following threads:
-1. Session processor - handles new client connections, reads commands and queue them, pops queued command results and writes them to users.
-2. Command processor - pops queued commands, interprets and executes them and queues results. Pushes command result to the egress queue, adds items to the auction list. 
-3. Auction processor - process auction events, monitors if an auction has been expired and queues notifications to users about an item being sold, bought or outbid.
+### Threads 
+- **Session processor** - handles new client connections, reads user data from a socket and spawns a new asynchronous task for each data packet. Puts the related future object into the **Tasks queue**. 
+- **Auction processor** - process auction events, monitors if an auction has been expired. Spawns a new asynchronous task to handle user notification about the auction status. Puts the related future object into the **Tasks queue**.
+- **Tasks processor** - pops queued futures and process them and then sends results to the connected users.
+
+### Tasks
+
+Tasks are asynchronous and are being executed either in parallel or synchronously (depends on the standard library implementation).
+The **Tasks processor** awaits the future objects in the **Tasks queue** to be finished and sends the result back to a user.
+Each task represents processing of a single command or notification from the **Auction** processor.
 
 There are following queues:
-1. Ingress queues - for each user connection there is a queue with data (commands) received from a user. The session processor pushes the received commands to the queue, the command processor pops them.  
-2. Egress queues - for each user connection there is a queue with data (command results, auction notifications) to be sent to user. The commands processor and the auction processor puts results on this queue, the connection processor pops them. 
+1. Tasks queue - queue of future objects that represents results of asynchronous tasks spawned by the **Session and Auction processors**.
 
 There are following data structures:
 1. Auctions list - list of items put to an auction. Items are put here in the result of user's command and removed when an auction comes to an end.
-2. User accounts map - username is the key and the value is user account which keeps info about funds and list of items. A user account can be modified by either by user or the auction processor.
-3. Session id to user map - keeps entries for logged-in users to map session ids to usernames.
-
-```mermaid
-sequenceDiagram
-    TestA->>TestB: Test MSG
-```
+2. User accounts map - username is the key and the value is user account which keeps info about funds and list of items.
+3. Sessions map - keeps entries for each connection with information about socket descriptor, session id and username if logged-in.
