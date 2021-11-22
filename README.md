@@ -23,7 +23,7 @@ The commands are case-insensitive, but the `<arguments>` are case-sensitive.
 
 ### Limitations and requirements
 
-- Putting an item into an auction charges the seller a fee equals to `1` which is deduced from the final price paid by the buyer. If there is no enough funds and an item won't be sold, then a debit occurs.
+- Putting an item into an auction charges the seller a fee equals to `1`, which is deducted instantly. If a user doesn't have funds to put an item into an auction it will fail.
 - When a user bids an item, the bid amount is deducted automatically from user's funds. If a user is outbid, funds come back to its account.
 - User can't bind if it doesn't have enough funds.
 - User can store more than one item with the same name.
