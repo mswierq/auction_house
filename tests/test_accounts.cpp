@@ -15,22 +15,22 @@ TEST_CASE("Create a new user account", "[Accounts]") {
   SECTION("by deposition of funds") {
     REQUIRE(accounts.deposit_funds(username, 10));
     REQUIRE(accounts.get_funds(username) == 10);
-    REQUIRE(accounts.get_items(username).value().empty());
+    REQUIRE(accounts.get_items(username).empty());
   }
 
   SECTION("by deposition of an item") {
     std::string item{"item"};
-    REQUIRE(accounts.deposit_item(username, item));
-    REQUIRE(accounts.get_items(username).value() == item);
+    accounts.deposit_item(username, item);
+    REQUIRE(accounts.get_items(username) == item);
     REQUIRE(accounts.get_funds(username) == 0);
   }
 
   SECTION("by deposition of multiple items") {
     std::array items{"item", "item2", "item3"};
     for (auto &item : items) {
-      REQUIRE(accounts.deposit_item(username, item));
+      accounts.deposit_item(username, item);
     }
-    REQUIRE(accounts.get_items(username).value() ==
+    REQUIRE(accounts.get_items(username) ==
             std::accumulate(items.cbegin(), items.cend(), std::string{},
                             [](std::string &a, const std::string &b) {
                               if (!a.empty()) {
@@ -44,22 +44,22 @@ TEST_CASE("Create a new user account", "[Accounts]") {
   SECTION("by withdrawing funds") {
     REQUIRE(accounts.withdraw_funds(username, 10) == false);
     REQUIRE(accounts.get_funds(username) == 0);
-    REQUIRE(accounts.get_items(username).value().empty());
+    REQUIRE(accounts.get_items(username).empty());
   }
 
   SECTION("by withdrawing item that doesn't exist") {
     REQUIRE(accounts.withdraw_item(username, "item") == false);
     REQUIRE(accounts.get_funds(username) == 0);
-    REQUIRE(accounts.get_items(username).value().empty());
+    REQUIRE(accounts.get_items(username).empty());
   }
 
   SECTION("by getting funds") {
     REQUIRE(accounts.get_funds(username) == 0);
-    REQUIRE(accounts.get_items(username).value().empty());
+    REQUIRE(accounts.get_items(username).empty());
   }
 
   SECTION("by getting items") {
-    REQUIRE(accounts.get_items(username).value().empty());
+    REQUIRE(accounts.get_items(username).empty());
     REQUIRE(accounts.get_funds(username) == 0);
   }
 }
@@ -70,18 +70,18 @@ TEST_CASE("Operate on multiple users accounts", "[Accounts]") {
 
   for (auto &user : users) {
     REQUIRE(accounts.get_funds(user) == 0);
-    REQUIRE(accounts.get_items(user).value().empty());
+    REQUIRE(accounts.get_items(user).empty());
   }
 
   SECTION("Add a new account") {
     auto new_user{"new_user"};
     REQUIRE(accounts.get_funds(new_user) == 0);
-    REQUIRE(accounts.get_items(new_user).value().empty());
+    REQUIRE(accounts.get_items(new_user).empty());
 
     users.push_back(new_user);
     for (auto &user : users) {
       REQUIRE(accounts.get_funds(user) == 0);
-      REQUIRE(accounts.get_items(user).value().empty());
+      REQUIRE(accounts.get_items(user).empty());
     }
   }
 
@@ -94,8 +94,7 @@ TEST_CASE("Operate on multiple users accounts", "[Accounts]") {
       accounts.deposit_item(user, "item_2");
       accounts.withdraw_funds(user, 5);
       accounts.withdraw_funds(user, 7);
-      return std::make_pair(accounts.get_funds(user).value(),
-                            accounts.get_items(user).value());
+      return std::make_pair(accounts.get_funds(user), accounts.get_items(user));
     }));
     futures.push_back(std::async(std::launch::async, [&accounts]() {
       auto user = "user_1";
@@ -104,8 +103,7 @@ TEST_CASE("Operate on multiple users accounts", "[Accounts]") {
       accounts.deposit_item(user, "item_2");
       accounts.withdraw_funds(user, 7);
       accounts.withdraw_item(user, "item_2");
-      return std::make_pair(accounts.get_funds(user).value(),
-                            accounts.get_items(user).value());
+      return std::make_pair(accounts.get_funds(user), accounts.get_items(user));
     }));
     futures.push_back(std::async(std::launch::async, [&accounts]() {
       auto user = "user_2";
@@ -113,8 +111,7 @@ TEST_CASE("Operate on multiple users accounts", "[Accounts]") {
       accounts.deposit_item(user, "item_3");
       accounts.withdraw_funds(user, 7);
       accounts.deposit_item(user, "item_2");
-      return std::make_pair(accounts.get_funds(user).value(),
-                            accounts.get_items(user).value());
+      return std::make_pair(accounts.get_funds(user), accounts.get_items(user));
     }));
     futures.push_back(std::async(std::launch::async, [&accounts]() {
       auto user = "new_user";
@@ -123,8 +120,7 @@ TEST_CASE("Operate on multiple users accounts", "[Accounts]") {
       accounts.deposit_item(user, "item_2");
       accounts.deposit_item(user, "item_2");
       accounts.withdraw_item(user, "item_2");
-      return std::make_pair(accounts.get_funds(user).value(),
-                            accounts.get_items(user).value());
+      return std::make_pair(accounts.get_funds(user), accounts.get_items(user));
     }));
 
     std::vector expected = {
@@ -144,8 +140,8 @@ TEST_CASE("Operate on multiple users accounts", "[Accounts]") {
       REQUIRE(exp_funds == funds);
       REQUIRE(exp_items == items);
       // Double check after all parallel operations are done
-      REQUIRE(accounts.get_funds(user).value() == funds);
-      REQUIRE(accounts.get_items(user).value() == items);
+      REQUIRE(accounts.get_funds(user) == funds);
+      REQUIRE(accounts.get_items(user) == items);
     }
   }
 }

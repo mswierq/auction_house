@@ -17,6 +17,6 @@ Task TasksQueue::pop() {
   _cv.wait(l, [this]{return !this->_queue.empty();});
   auto task = std::move(_queue.front());
   _queue.pop_front();
-  return std::move(task);
+  return task;
 }
 }

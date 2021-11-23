@@ -6,15 +6,10 @@
 #include <numeric>
 
 namespace auction_engine {
-bool Accounts::deposit_item(const std::string &username,
+void Accounts::deposit_item(const std::string &username,
                             const std::string &item) {
   std::lock_guard _l(_mutex);
-  try {
-    _accounts[username].items.push_back(item);
-  } catch (std::bad_alloc &e) {
-    return false;
-  }
-  return true;
+  _accounts[username].items.push_back(item);
 }
 
 bool Accounts::deposit_funds(const std::string &username,
@@ -50,29 +45,20 @@ bool Accounts::withdraw_funds(const std::string &username,
   return false;
 }
 
-std::optional<FundsType> Accounts::get_funds(const std::string &username) {
+FundsType Accounts::get_funds(const std::string &username) {
   std::lock_guard _l(_mutex);
-  try {
-    return _accounts[username].funds;
-  } catch (std::bad_alloc &e) {
-    return {};
-  }
+  return _accounts[username].funds;
 }
 
-std::optional<std::string> Accounts::get_items(const std::string &username) {
+std::string Accounts::get_items(const std::string &username) {
   std::lock_guard _l(_mutex);
-  try {
-    auto &user_items = _accounts[username].items;
-    return std::accumulate(user_items.cbegin(), user_items.cend(),
-                           std::string{},
-                           [](std::string &a, const std::string &b) {
-                             if (!a.empty()) {
-                               a.append("\n");
-                             }
-                             return a.append(b);
-                           });
-  } catch (std::bad_alloc &e) {
-    return {};
-  }
+  auto &user_items = _accounts[username].items;
+  return std::accumulate(user_items.cbegin(), user_items.cend(), std::string{},
+                         [](std::string &a, const std::string &b) {
+                           if (!a.empty()) {
+                             a.append("\n");
+                           }
+                           return a.append(b);
+                         });
 }
 } // namespace auction_engine

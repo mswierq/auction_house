@@ -36,7 +36,7 @@ The high-level overview how the server application is implemented.
 
 ### Threads 
 - **Session processor** - handles new client connections, reads user data from a socket and spawns a new asynchronous task for each data packet. Puts the related future object into the **Tasks queue**. 
-- **Auction processor** - process auction events, monitors if an auction has been expired. Spawns a new asynchronous task to handle user notification about the auction status. Puts the related future object into the **Tasks queue**.
+- **Auction processor** - process auction events, monitors if an auction has been list. Spawns a new asynchronous task to handle user notification about the auction status. Puts the related future object into the **Tasks queue**.
 - **Tasks processor** - pops queued futures and process them and then sends results to the connected users.
 
 ### Tasks

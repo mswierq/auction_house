@@ -19,7 +19,11 @@ if (NOT spdlog_POPULATED)
 endif ()
 
 ## SERVER APP
-set(lib_src src/user_account.cpp src/tasks_queue.cpp)
+set(lib_src
+        src/user_account.cpp
+        src/tasks_queue.cpp
+        src/auctions.cpp
+)
 add_library(lib_auction_engine ${lib_src})
 target_include_directories(lib_auction_engine PUBLIC include)
 
@@ -36,7 +40,12 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-add_executable(tests tests/tests.cpp tests/test_accounts.cpp tests/test_tasks_queue.cpp)
+set(tests_src
+        tests/tests.cpp
+        tests/test_accounts.cpp
+        tests/test_tasks_queue.cpp
+        tests/test_auctions.cpp)
+add_executable(tests ${tests_src})
 target_link_libraries(tests PRIVATE Catch2::Catch2)
 target_include_directories(tests PRIVATE include)
 target_link_libraries(tests PRIVATE lib_auction_engine pthread)
