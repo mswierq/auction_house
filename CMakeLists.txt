@@ -23,7 +23,9 @@ set(lib_src
         src/user_account.cpp
         src/tasks_queue.cpp
         src/auctions.cpp
-        src/session.cpp)
+        src/session.cpp
+        src/tasks.cpp
+        src/command.cpp)
 add_library(lib_auction_engine ${lib_src})
 target_include_directories(lib_auction_engine PUBLIC include)
 
@@ -45,7 +47,8 @@ set(tests_src
         tests/test_accounts.cpp
         tests/test_tasks_queue.cpp
         tests/test_auctions.cpp
-        tests/test_session.cpp)
+        tests/test_session.cpp
+        tests/test_commands.cpp)
 add_executable(tests ${tests_src})
 target_link_libraries(tests PRIVATE Catch2::Catch2)
 target_include_directories(tests PRIVATE include)

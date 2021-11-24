@@ -4,12 +4,14 @@
 #pragma once
 #include "session_id.h"
 #include <optional>
+#include "funds_type.h"
 
 namespace auction_engine {
-struct Event {
+//An ingress/egress event
+struct UserEvent {
   //A logged-in user has to fill this field
   std::optional<std::string> username;
-  //A session id isn't set by the Auction processor
+  //The auction processor doesn't know the session ids, only usernames
   std::optional<SessionId> session_id;
   std::string data;
 };

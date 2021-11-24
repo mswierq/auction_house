@@ -6,10 +6,9 @@
 #include <mutex>
 #include <future>
 #include "events.h"
+#include "tasks.h"
 
 namespace auction_engine {
-using Task = std::future<Event>;
-
 class TasksQueue {
 public:
   void enqueue(Task&& task);
