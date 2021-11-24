@@ -2,6 +2,7 @@
 // Created by mswiercz on 23.11.2021.
 //
 #pragma once
+#include "network.h"
 #include "session_id.h"
 #include <optional>
 #include <shared_mutex>
@@ -9,10 +10,15 @@
 #include <unordered_map>
 
 namespace auction_engine {
+struct Session {
+  ConnectionId connection;
+  std::optional<std::string> username;
+};
+
 class SessionManager {
 public:
   // Creates a new session when a user connects
-  bool start_session(const SessionId id);
+  bool start_session(const SessionId id, const ConnectionId conn_id);
 
   // Ends a session when a user disconnects
   bool end_session(const SessionId id);
@@ -30,9 +36,12 @@ public:
   // Returns SessionId for the given username, none if user isn't logged in
   std::optional<SessionId> get_session_id(const std::string &username);
 
+  // Returns a connection id for the given session
+  std::optional<ConnectionId> get_connection_id(const SessionId id);
+
 private:
   // keeps the current sessions and if user is logged in
-  std::unordered_map<SessionId, std::optional<std::string>> _sessions;
+  std::unordered_map<SessionId, Session> _sessions;
   std::unordered_map<std::string, SessionId> _logged_users;
   std::shared_mutex _mutex;
 };
