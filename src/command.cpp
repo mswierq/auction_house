@@ -55,11 +55,84 @@ public:
     } catch (std::bad_optional_access &e) {
     }
     return {std::move(_event.username), _event.session_id,
-            "Couldn't login as" + _username};
+            "Couldn't login as " + _username + "!"};
   }
 
 private:
   std::string _username;
+};
+
+class LogoutCommand : public Command {
+public:
+  LogoutCommand(UserEvent &&event) : Command(std::move(event)) {}
+
+  UserEvent execute(Database &database) override {
+    try {
+      if (database.sessions.logout(_event.session_id.value())) {
+        auto data = "Good bay, " + _event.username.value() + "!";
+        return {std::move(_event.username), _event.session_id, std::move(data)};
+      }
+    } catch (std::bad_optional_access &e) {
+    }
+    return {std::move(_event.username), _event.session_id,
+            "You are not logged in!"};
+  }
+};
+
+class DepositFundsCommand : public Command {
+public:
+  DepositFundsCommand(UserEvent &&event, std::string &&amount)
+      : Command(std::move(event)), _amount(amount) {}
+
+  UserEvent execute(Database &database) override {
+    if (!_event.username.has_value()) {
+      return {{},
+              _event.session_id,
+              "Deposition of funds has failed! Are you logged in?"};
+    }
+    try {
+      if (database.accounts.deposit_funds(_event.username.value(),
+                                          parse_funds(_amount))) {
+        return {std::move(_event.username), _event.session_id,
+                "Successful deposition of funds: " + _amount + "!"};
+      }
+    } catch (std::bad_optional_access &) {
+      return {std::move(_event.username), _event.session_id,
+              "Deposition of funds has failed! Server error!"};
+    } catch (std::invalid_argument &) {
+    } catch (std::out_of_range &) {
+    }
+    return {std::move(_event.username), _event.session_id,
+            "Deposition of funds has failed! Invalid amount!"};
+  }
+
+private:
+  std::string _amount;
+};
+
+class DepositItemCommand : public Command {
+public:
+  DepositItemCommand(UserEvent &&event, std::string &&item)
+      : Command(std::move(event)), _item(item) {}
+
+  UserEvent execute(Database &database) override {
+    if (!_event.username.has_value()) {
+      return {{},
+              _event.session_id,
+              "Deposition of an item has failed! Are you logged in?"};
+    }
+    try {
+      database.accounts.deposit_item(_event.username.value(), _item);
+      return {std::move(_event.username), _event.session_id,
+              "Successful deposition of item: " + _item + "!"};
+    } catch (std::bad_optional_access &) {
+      return {std::move(_event.username), _event.session_id,
+              "Deposition of an item has failed! Server error!"};
+    }
+  }
+
+private:
+  std::string _item;
 };
 
 class WrongCommand : public Command {
@@ -74,13 +147,28 @@ public:
 };
 
 CommandPtr Command::parse(UserEvent &&event) {
+  std::smatch matches{};
+
   if (std::regex_match(event.data, help_regex)) {
     return CommandPtr{new HelpCommand{std::move(event)}};
   }
 
-  std::smatch matches{};
   if (std::regex_match(event.data, matches, login_regex)) {
     return CommandPtr{new LoginCommand{std::move(event), matches[2].str()}};
+  }
+
+  if (std::regex_match(event.data, logout_regex)) {
+    return CommandPtr{new LogoutCommand{std::move(event)}};
+  }
+
+  if (std::regex_match(event.data, matches, deposit_funds_regex)) {
+    return CommandPtr{
+        new DepositFundsCommand{std::move(event), matches[3].str()}};
+  }
+
+  if (std::regex_match(event.data, matches, deposit_item_regex)) {
+    return CommandPtr{
+        new DepositItemCommand{std::move(event), matches[3].str()}};
   }
 
   return CommandPtr{new WrongCommand{std::move(event)}};
