@@ -135,6 +135,68 @@ private:
   std::string _item;
 };
 
+class WithdrawFundsCommand : public Command {
+public:
+  WithdrawFundsCommand(UserEvent &&event, std::string &&amount)
+      : Command(std::move(event)), _amount(amount) {}
+
+  UserEvent execute(Database &database) override {
+    if (!_event.username.has_value()) {
+      return {{},
+              _event.session_id,
+              "Withdrawal of funds has failed! Are you logged in?"};
+    }
+    try {
+      if (database.accounts.withdraw_funds(_event.username.value(),
+                                          parse_funds(_amount))) {
+        return {std::move(_event.username), _event.session_id,
+                "Successfully withdrawn: " + _amount + "!"};
+      } else {
+        return {std::move(_event.username), _event.session_id,
+                "Withdrawal of funds has failed! Insufficient funds!"};
+      }
+    } catch (std::bad_optional_access &) {
+      return {std::move(_event.username), _event.session_id,
+              "Withdrawal of funds has failed! Server error!"};
+    } catch (std::invalid_argument &) {
+    } catch (std::out_of_range &) {
+    }
+    return {std::move(_event.username), _event.session_id,
+            "Withdrawal of funds has failed! Invalid amount!"};
+  }
+
+private:
+  std::string _amount;
+};
+
+class WithdrawItemCommand : public Command {
+public:
+  WithdrawItemCommand(UserEvent &&event, std::string &&item)
+      : Command(std::move(event)), _item(item) {}
+
+  UserEvent execute(Database &database) override {
+    if (!_event.username.has_value()) {
+      return {{},
+              _event.session_id,
+              "Withdrawal of an item has failed! Are you logged in?"};
+    }
+    try {
+      if(database.accounts.withdraw_item(_event.username.value(), _item)) {
+        return {std::move(_event.username), _event.session_id,
+                      "Successfully withdrawn item: " + _item + "!"};
+      }
+    } catch (std::bad_optional_access &) {
+      return {std::move(_event.username), _event.session_id,
+              "Withdrawal of an item has failed! Server error!"};
+    }
+    return {std::move(_event.username), _event.session_id,
+            "Withdrawal of an item has failed! No such item: " + _item + "!"};
+  }
+
+private:
+  std::string _item;
+};
+
 class WrongCommand : public Command {
 public:
   WrongCommand(UserEvent &&event) : Command(std::move(event)) {}
@@ -169,6 +231,16 @@ CommandPtr Command::parse(UserEvent &&event) {
   if (std::regex_match(event.data, matches, deposit_item_regex)) {
     return CommandPtr{
         new DepositItemCommand{std::move(event), matches[3].str()}};
+  }
+
+  if (std::regex_match(event.data, matches, withdraw_funds_regex)) {
+    return CommandPtr{
+        new WithdrawFundsCommand{std::move(event), matches[3].str()}};
+  }
+
+  if (std::regex_match(event.data, matches, withdraw_item_regex)) {
+    return CommandPtr{
+        new WithdrawItemCommand{std::move(event), matches[3].str()}};
   }
 
   return CommandPtr{new WrongCommand{std::move(event)}};
