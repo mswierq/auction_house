@@ -107,9 +107,10 @@ TEST_CASE("Test execution of a command", "[Commands]") {
     SECTION("Try to deposit too much") {
       sessions.login(session_id, "username");
       event.username = "username";
-      event.data = "DEPOSIT FUNDS "
-                   "1000000000000000000000000000000000000000000000000000000000000"
-                   "000000000000000000000";
+      event.data =
+          "DEPOSIT FUNDS "
+          "1000000000000000000000000000000000000000000000000000000000000"
+          "000000000000000000000";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
       REQUIRE(egress_event.session_id.value() == session_id);
@@ -127,7 +128,8 @@ TEST_CASE("Test execution of a command", "[Commands]") {
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
       REQUIRE(egress_event.session_id.value() == session_id);
-      REQUIRE(egress_event.data == "Successful deposition of item: my_pretty_item!");
+      REQUIRE(egress_event.data ==
+              "Successful deposition of item: my_pretty_item!");
       REQUIRE(accounts.get_items("username") == "my_pretty_item");
     }
 
@@ -151,8 +153,7 @@ TEST_CASE("Test execution of a command", "[Commands]") {
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
       REQUIRE(egress_event.session_id.value() == session_id);
-      REQUIRE(egress_event.data ==
-              "Successfully withdrawn: 100!");
+      REQUIRE(egress_event.data == "Successfully withdrawn: 100!");
       REQUIRE(accounts.get_funds("username") == 900);
     }
 
@@ -182,9 +183,10 @@ TEST_CASE("Test execution of a command", "[Commands]") {
       sessions.login(session_id, "username");
       accounts.deposit_funds("username", 1000);
       event.username = "username";
-      event.data = "WITHDRAW FUNDS "
-                   "1000000000000000000000000000000000000000000000000000000000000"
-                   "000000000000000000000";
+      event.data =
+          "WITHDRAW FUNDS "
+          "1000000000000000000000000000000000000000000000000000000000000"
+          "000000000000000000000";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
       REQUIRE(egress_event.session_id.value() == session_id);
@@ -218,7 +220,8 @@ TEST_CASE("Test execution of a command", "[Commands]") {
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
       REQUIRE(egress_event.session_id.value() == session_id);
-      REQUIRE(egress_event.data == "Successfully withdrawn item: my_ugly_item!");
+      REQUIRE(egress_event.data ==
+              "Successfully withdrawn item: my_ugly_item!");
       REQUIRE(accounts.get_items("username") == "my_pretty_item");
     }
 

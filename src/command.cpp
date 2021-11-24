@@ -148,7 +148,7 @@ public:
     }
     try {
       if (database.accounts.withdraw_funds(_event.username.value(),
-                                          parse_funds(_amount))) {
+                                           parse_funds(_amount))) {
         return {std::move(_event.username), _event.session_id,
                 "Successfully withdrawn: " + _amount + "!"};
       } else {
@@ -181,9 +181,9 @@ public:
               "Withdrawal of an item has failed! Are you logged in?"};
     }
     try {
-      if(database.accounts.withdraw_item(_event.username.value(), _item)) {
+      if (database.accounts.withdraw_item(_event.username.value(), _item)) {
         return {std::move(_event.username), _event.session_id,
-                      "Successfully withdrawn item: " + _item + "!"};
+                "Successfully withdrawn item: " + _item + "!"};
       }
     } catch (std::bad_optional_access &) {
       return {std::move(_event.username), _event.session_id,
