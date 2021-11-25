@@ -2,11 +2,11 @@
 // Created by mswiercz on 22.11.2021.
 //
 #pragma once
-#include <deque>
-#include <mutex>
-#include <future>
-#include "events.h"
 #include "tasks.h"
+#include "user_event.h"
+#include <deque>
+#include <future>
+#include <mutex>
 
 namespace auction_engine {
 class TasksQueue {
