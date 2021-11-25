@@ -18,51 +18,57 @@ bool AuctionList::add_auction(Auction &&auction) {
     if (_auctions.find(id) == _auctions.end()) {
       _auctions[id] = std::move(auction);
       result = true;
+      if (auction.expiration_time < _nearest_expire) {
+        _nearest_expire = auction.expiration_time;
+        _cv_timer.notify_one();
+      }
     }
   }
-  _cv.notify_one();
+  _cv_empty_list.notify_one();
   return result;
 }
 
-OutbiddenBuyer AuctionList::bid_item(AuctionId id, FundsType new_price,
-                                     const std::string &new_buyer) {
+BidResult AuctionList::bid_item(AuctionId id, FundsType new_price,
+                                const std::string &new_buyer) {
   std::unique_lock _l{_mutex};
   auto auction_it = _auctions.find(id);
   if (auction_it == _auctions.end()) {
-    return {std::move(new_buyer), BidResult::DoesNotExist};
+    return BidResult::DoesNotExist;
   }
   if (auction_it->second.owner == new_buyer) {
-    return {std::move(new_buyer), BidResult::OwnerBid};
+    return BidResult::OwnerBid;
   }
   if (auction_it->second.price >= new_price) {
-    return {std::move(new_buyer), BidResult::TooLowPrice};
+    return BidResult::TooLowPrice;
   }
-  OutbiddenBuyer outbidden{new_buyer, BidResult::Successful};
-  outbidden.buyer.swap(auction_it->second.buyer);
+  auction_it->second.buyer = new_buyer;
   auction_it->second.price = new_price;
-  return outbidden;
+  return BidResult::Successful;
 }
 
-ExpiredAuctions AuctionList::find_expired(const TimePoint &start_at) {
+ExpiredAuctions AuctionList::collect_expired() {
   std::unique_lock lck{_mutex};
-  // waits for the auction nearest to expire or for a new auction to be added
-  _cv.wait_until(lck, start_at);
-  // waits if there is no auctions at all
-  _cv.wait(lck, [this]() { return !this->_auctions.empty(); });
   // collects list auctions
-  ExpiredAuctions expired{{}, TimePoint::max()};
+  ExpiredAuctions expired;
   for (auto it = _auctions.begin(); it != _auctions.end();) {
     auto &[_, auction] = *it;
     if (auction.expiration_time < Clock::now()) {
-      expired.list.push_back(std::move(auction));
+      expired.push_back(std::move(auction));
       it = _auctions.erase(it);
     } else {
-      expired.nearest_expire =
-          std::min(expired.nearest_expire, auction.expiration_time);
+      _nearest_expire = std::min(_nearest_expire, auction.expiration_time);
       ++it;
     }
   }
   return expired;
+}
+
+void AuctionList::wait_for_expired() {
+  std::unique_lock lck{_mutex};
+  // waits for the auction nearest to expire or for a new auction to be added
+  _cv_timer.wait_until(lck, _nearest_expire);
+  // waits if there is no auctions at all
+  _cv_empty_list.wait(lck, [this]() { return !this->_auctions.empty(); });
 }
 
 std::vector<std::string> AuctionList::get_printable_list() {

@@ -26,38 +26,37 @@ struct Auction {
 
 enum class BidResult { DoesNotExist, TooLowPrice, OwnerBid, Successful };
 
-struct OutbiddenBuyer {
-  std::optional<std::string> buyer;
-  BidResult result;
-};
-
-struct ExpiredAuctions {
-  std::list<Auction> list;
-  TimePoint nearest_expire;
-};
+using ExpiredAuctions = std::list<Auction>;
 
 class AuctionList {
 public:
   // Adds a new auction, returns false if an error has occurred
   bool add_auction(Auction &&auction);
 
-  // Returns an outbidden buyer, it can be a new buyer due to item that doesn't
-  // exist, the new price has been too low or the owner tried to bid its own
-  // item
-  OutbiddenBuyer bid_item(AuctionId id, FundsType new_price,
-                          const std::string &new_buyer);
+  // Bids an item by its id and returns the bid result, it can be:
+  // - a success, bidder gave a better price,
+  // - a fail due too low offer,
+  // - a fail when item doesn't exit,
+  // - a fail, because the owner tried to bid its own item
+  BidResult bid_item(AuctionId id, FundsType new_price,
+                     const std::string &new_buyer);
 
-  // Returns list of list auctions and time point when next checkup should
-  // occur. Starts the search at the specified time point.
-  ExpiredAuctions find_expired(const TimePoint &start_at);
+  // Returns list of list auctions that has expired
+  ExpiredAuctions collect_expired();
 
-  // Returns a vecotr of auctions as printable strings
+  // Waits for at least one auction to expire, this also unblocks when a new
+  // item is added to the map.
+  void wait_for_expired();
+
+  // Returns a vector of auctions as printable strings
   std::vector<std::string> get_printable_list();
 
 private:
   std::unordered_map<AuctionId, Auction> _auctions;
   std::shared_mutex _mutex;
-  std::condition_variable_any _cv;
+  std::condition_variable_any _cv_empty_list;
+  std::condition_variable_any _cv_timer;
   static AuctionId _next_id;
+  TimePoint _nearest_expire = TimePoint::max();
 };
 } // namespace auction_engine
