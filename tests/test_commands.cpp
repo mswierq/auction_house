@@ -311,6 +311,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       REQUIRE(egress_event.username.value() == username_1);
       REQUIRE(egress_event.session_id.value() == user_1_sess_id);
       REQUIRE(egress_event.data == "You are winning the auction 0!");
+      REQUIRE(accounts.get_funds(username_1) == 800);
       REQUIRE_THAT(auctions.get_printable_list(),
                    UnorderedEquals<std::string>(
                        {{std::string("ID: 0; ITEM: item_0; OWNER: username_0; "
@@ -324,6 +325,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       REQUIRE(egress_event.username.value() == username_1);
       REQUIRE(egress_event.session_id.value() == user_1_sess_id);
       REQUIRE(egress_event.data == "Your offer for the auction 0 was too low!");
+      REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
           auctions.get_printable_list(),
           UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
@@ -336,6 +338,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       REQUIRE(egress_event.username.value() == username_1);
       REQUIRE(egress_event.session_id.value() == user_1_sess_id);
       REQUIRE(egress_event.data == "There is no such auction!");
+      REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
           auctions.get_printable_list(),
           UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
@@ -352,6 +355,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       REQUIRE(egress_event.username.value() == username_1);
       REQUIRE(egress_event.session_id.value() == user_1_sess_id);
       REQUIRE(egress_event.data == "The bid arguments are invalid!");
+      REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
           auctions.get_printable_list(),
           UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
@@ -369,6 +373,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       REQUIRE(egress_event.username.value() == username_1);
       REQUIRE(egress_event.session_id.value() == user_1_sess_id);
       REQUIRE(egress_event.data == "The bid arguments are invalid!");
+      REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
           auctions.get_printable_list(),
           UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
@@ -383,6 +388,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       REQUIRE(egress_event.session_id.value() == user_1_sess_id);
       REQUIRE(egress_event.data ==
               "Bidding an item has failed! Are you logged in?");
+      REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
           auctions.get_printable_list(),
           UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
@@ -396,6 +402,21 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       REQUIRE(egress_event.session_id.value() == user_0_sess_id);
       REQUIRE(egress_event.data ==
               "You can't bid on the auction 0, you are the seller!");
+      REQUIRE(accounts.get_funds(username_0) == 999);
+      REQUIRE_THAT(
+          auctions.get_printable_list(),
+          UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
+                                         "username_0; PRICE: 100; BUYER: "}}));
+    }
+
+    SECTION("Try to bid without enough funds") {
+      UserEvent event{username_1, user_1_sess_id, "BID 0 2000"};
+      auto egress_event = Command::parse(std::move(event))->execute(database);
+      REQUIRE(egress_event.username.value() == username_1);
+      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.data ==
+              "You can't bid on the auction 0, you don't have enough funds!");
+      REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
           auctions.get_printable_list(),
           UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
@@ -468,5 +489,50 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
     REQUIRE(egress_event.data ==
             "Selling of an item has failed! Are you logged in?");
     REQUIRE(auctions.get_printable_list().empty());
+  }
+}
+
+TEST_CASE("Test execution of show commands", "[Commands]") {
+  Accounts accounts;
+  AuctionList auctions;
+  SessionManager sessions;
+  Database database{accounts, auctions, sessions};
+
+  const SessionId user_0_sess_id = 1;
+  const ConnectionId user_0_conn_id = 1;
+  const SessionId user_1_sess_id = 2;
+  const ConnectionId user_1_conn_id = 2;
+  const auto username_0 = "username_0";
+  const auto username_1 = "username_1";
+  REQUIRE(sessions.start_session(user_0_sess_id, user_0_sess_id));
+  REQUIRE(sessions.start_session(user_1_sess_id, user_1_sess_id));
+  REQUIRE(sessions.login(user_0_sess_id, username_0));
+  REQUIRE(sessions.login(user_1_sess_id, username_1));
+  REQUIRE(accounts.deposit_funds(username_0, 1000));
+  REQUIRE(accounts.deposit_funds(username_1, 1000));
+  accounts.deposit_item(username_0, "item_0");
+  accounts.deposit_item(username_0, "item_1");
+  accounts.deposit_item(username_0, "item_0");
+  accounts.deposit_item(username_1, "item_2");
+  accounts.deposit_item(username_1, "item_3");
+
+  REQUIRE(auctions.add_auction({username_0, {}, 100, "item_4", Clock::now()}));
+  REQUIRE(auctions.add_auction({username_0, {}, 200, "item_5", Clock::now()}));
+  REQUIRE(auctions.add_auction({username_1, {}, 400, "item_6", Clock::now()}));
+  REQUIRE(auctions.add_auction({username_1, {}, 300, "item_7", Clock::now()}));
+  REQUIRE(auctions.add_auction({username_1, {}, 500, "item_8", Clock::now()}));
+
+  REQUIRE(auctions.bid_item(1, 500, username_1) == BidResult::Successful);
+
+  SECTION("Show user's items") {
+
+  }
+
+  SECTION("Show user's funds") {
+
+  }
+
+  SECTION("Show auctions") {
+
   }
 }
