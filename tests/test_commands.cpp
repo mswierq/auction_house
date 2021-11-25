@@ -318,6 +318,29 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
                        {{std::string("ID: 0; ITEM: item_0; OWNER: username_0; "
                                      "PRICE: 200; BUYER: ") +
                          username_1}}));
+
+      SECTION("Then successfully overbid by another user") {
+        SessionId user_2_sess_id = 5;
+        auto username_2 = "username_2";
+        sessions.start_session(user_2_sess_id, 5);
+        sessions.login(user_2_sess_id, username_2);
+        accounts.deposit_funds(username_2, 1000);
+
+        UserEvent event_2 = {username_2, user_2_sess_id, "BID 0 400"};
+        auto egress_event =
+            Command::parse(std::move(event_2))->execute(database);
+        REQUIRE(egress_event.username.value() == username_2);
+        REQUIRE(egress_event.session_id == user_2_sess_id);
+        REQUIRE(egress_event.data == "You are winning the auction 0!");
+//        REQUIRE(accounts.get_funds(username_1) == 1000);
+//        REQUIRE(accounts.get_funds(username_2) == 600); TODO
+        REQUIRE_THAT(
+            auctions.get_printable_list(),
+            UnorderedEquals<std::string>(
+                {{std::string("ID: 0; ITEM: item_0; OWNER: username_0; "
+                              "PRICE: 400; BUYER: ") +
+                  username_2}}));
+      }
     }
 
     SECTION("Then fail the bid due too low offer") {
