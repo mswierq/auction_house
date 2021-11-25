@@ -14,7 +14,7 @@ A user can connect through a telnet client to the auction house simulator server
 - `WITHDRAWS FUNDS <amount>` - withdraws `<amount>` of funds in user's account. Works only if logged in.
 - `WITHDRAWS FUNDS <item>` - withdraws an `<item>` in user's account. Works only if logged in.
 - `SELL <item> <starting-price> [<expiration-time>]` - puts an `<item>` into an auction with the `<starting-price>`. The optional argument `[<expiration-time>]` is seconds from putting the `<item>` into sale, default value is `300` (5 minutes). Works only if logged in.
-- `BID <item> <new-price>` - bids the `<item>` with the `<new-price>`. A user can't bid its own `<item>`. Works only if logged in.
+- `BID <auction-id> <new-price>` - bids an item tagged with the `<auction-id>` with the `<new-price>`. A user can't bid its own item. Works only if logged in.
 - `SHOW FUNDS` - shows user's funds. Works only if logged in.
 - `SHOW ITEMS` - shows user's items. Works only if logged in.
 - `SHOW SALES` - shows sales. Works only if logged in.

@@ -6,8 +6,9 @@
 #include <catch2/catch.hpp>
 
 using namespace auction_engine;
+using Catch::Matchers::UnorderedEquals;
 
-TEST_CASE("Test execution of a command", "[Commands]") {
+TEST_CASE("Test execution of user account related commands", "[Commands]") {
   Accounts accounts;
   AuctionList auctions;
   SessionManager sessions;
@@ -246,5 +247,226 @@ TEST_CASE("Test execution of a command", "[Commands]") {
               "Deposition of an item has failed! Are you logged in?");
       REQUIRE(accounts.get_items("username") == "my_pretty_item");
     }
+  }
+}
+
+TEST_CASE("Test execution of auction commands", "[Commands]") {
+  Accounts accounts;
+  AuctionList auctions;
+  SessionManager sessions;
+  Database database{accounts, auctions, sessions};
+
+  const SessionId user_0_sess_id = 1;
+  const ConnectionId user_0_conn_id = 1;
+  const SessionId user_1_sess_id = 2;
+  const ConnectionId user_1_conn_id = 2;
+  const auto username_0 = "username_0";
+  const auto username_1 = "username_1";
+  REQUIRE(sessions.start_session(user_0_sess_id, user_0_sess_id));
+  REQUIRE(sessions.start_session(user_1_sess_id, user_1_sess_id));
+  REQUIRE(sessions.login(user_0_sess_id, username_0));
+  REQUIRE(sessions.login(user_1_sess_id, username_1));
+  REQUIRE(accounts.deposit_funds(username_0, 1000));
+  REQUIRE(accounts.deposit_funds(username_1, 1000));
+  accounts.deposit_item(username_0, "item_0");
+  accounts.deposit_item(username_0, "item_1");
+  accounts.deposit_item(username_0, "item_0");
+  accounts.deposit_item(username_1, "item_2");
+  accounts.deposit_item(username_1, "item_3");
+
+  UserEvent event_0 = {username_0, user_0_sess_id, ""};
+  UserEvent event_1 = {username_1, user_1_sess_id, ""};
+
+  SECTION("Successfully put an item into sale - default expiration time") {
+    event_0.data = "SELL item_0 100";
+    auto egress_event = Command::parse(std::move(event_0))->execute(database);
+    REQUIRE(egress_event.username.value() == username_0);
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data == "Your item item_0 is being auctioned off!");
+    REQUIRE(accounts.get_items(username_0) == "item_1\nitem_0");
+    REQUIRE(accounts.get_funds(username_0) == 999); // charge for selling an
+                                                    // item
+    REQUIRE_THAT(
+        auctions.get_printable_list(),
+        UnorderedEquals<std::string>(
+            {{"ID: 0; ITEM: item_0; OWNER: username_0; PRICE: 100; BUYER: "}}));
+  }
+
+  SECTION("Successfully put an item into sale") {
+    event_0.data = "SELL item_0 100 1";
+    auto egress_event = Command::parse(std::move(event_0))->execute(database);
+    REQUIRE(egress_event.username.value() == username_0);
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data == "Your item item_0 is being auctioned off!");
+    REQUIRE(accounts.get_funds(username_0) == 999); // charge for selling an
+                                                    // item
+    REQUIRE_THAT(
+        auctions.get_printable_list(),
+        UnorderedEquals<std::string>(
+            {{"ID: 0; ITEM: item_0; OWNER: username_0; PRICE: 100; BUYER: "}}));
+
+    SECTION("Then successfully bid it by other user") {
+      event_1.data = "BID 0 200";
+      auto egress_event = Command::parse(std::move(event_1))->execute(database);
+      REQUIRE(egress_event.username.value() == username_1);
+      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.data == "You are winning the auction 0!");
+      REQUIRE_THAT(auctions.get_printable_list(),
+                   UnorderedEquals<std::string>(
+                       {{std::string("ID: 0; ITEM: item_0; OWNER: username_0; "
+                                     "PRICE: 200; BUYER: ") +
+                         username_1}}));
+    }
+
+    SECTION("Then fail the bid due too low offer") {
+      event_1.data = "BID 0 100";
+      auto egress_event = Command::parse(std::move(event_1))->execute(database);
+      REQUIRE(egress_event.username.value() == username_1);
+      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.data == "Your offer for the auction 0 was too low!");
+      REQUIRE_THAT(
+          auctions.get_printable_list(),
+          UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
+                                         "username_0; PRICE: 100; BUYER: "}}));
+    }
+
+    SECTION("Then fail the bid due to lack of an auction") {
+      event_1.data = "BID 1 200";
+      auto egress_event = Command::parse(std::move(event_1))->execute(database);
+      REQUIRE(egress_event.username.value() == username_1);
+      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.data == "There is no such auction!");
+      REQUIRE_THAT(
+          auctions.get_printable_list(),
+          UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
+                                         "username_0; PRICE: 100; BUYER: "}}));
+    }
+
+    SECTION("Then fail the bid due to lack of an auction - auction id auto of "
+            "bounds") {
+      event_1.data = "BID "
+                     "100000000000000000000000000000000000000000000000000000000"
+                     "000000000000000000000000000000000000000000000000000000000"
+                     "0000000000000000000000000 200";
+      auto egress_event = Command::parse(std::move(event_1))->execute(database);
+      REQUIRE(egress_event.username.value() == username_1);
+      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.data == "The bid arguments are invalid!");
+      REQUIRE_THAT(
+          auctions.get_printable_list(),
+          UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
+                                         "username_0; PRICE: 100; BUYER: "}}));
+    }
+
+    SECTION("Then fail the bid due to lack of an auction - price auto of "
+            "bounds") {
+      event_1.data =
+          "BID 0 "
+          "10000000000000000000000000000000000000000000000000000000000000000000"
+          "00000000000000000000000000000000000000000000000000000000000000000000"
+          "0000000000000000000000000";
+      auto egress_event = Command::parse(std::move(event_1))->execute(database);
+      REQUIRE(egress_event.username.value() == username_1);
+      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.data == "The bid arguments are invalid!");
+      REQUIRE_THAT(
+          auctions.get_printable_list(),
+          UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
+                                         "username_0; PRICE: 100; BUYER: "}}));
+    }
+
+    SECTION("Try to bid an item when not being logged in") {
+      event_1.username = {};
+      event_1.data = "BID 0 10000";
+      auto egress_event = Command::parse(std::move(event_1))->execute(database);
+      REQUIRE(!egress_event.username.has_value());
+      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.data ==
+              "Bidding an item has failed! Are you logged in?");
+      REQUIRE_THAT(
+          auctions.get_printable_list(),
+          UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
+                                         "username_0; PRICE: 100; BUYER: "}}));
+    }
+
+    SECTION("Try to bid as a seller of the item") {
+      UserEvent event{username_0, user_0_sess_id, "BID 0 200"};
+      auto egress_event = Command::parse(std::move(event))->execute(database);
+      REQUIRE(egress_event.username.value() == username_0);
+      REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+      REQUIRE(egress_event.data ==
+              "You can't bid on the auction 0, you are the seller!");
+      REQUIRE_THAT(
+          auctions.get_printable_list(),
+          UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
+                                         "username_0; PRICE: 100; BUYER: "}}));
+    }
+  }
+
+  SECTION("Fail at putting an item into sale - no sufficient funds to pay the "
+          "fee") {
+    REQUIRE(accounts.withdraw_funds(username_0, 1000)); // set balance to 0
+    event_0.data = "SELL item_0 100 1";
+    auto egress_event = Command::parse(std::move(event_0))->execute(database);
+    REQUIRE(egress_event.username.value() == username_0);
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data ==
+            "You can't sell your item, you don't have funds to cover the fee!");
+    REQUIRE(accounts.get_funds(username_0) == 0);
+    REQUIRE(accounts.get_items(username_0) == "item_1\nitem_0\nitem_0");
+    REQUIRE(auctions.get_printable_list().empty());
+  }
+
+  SECTION("Fail at putting an item into sale - no such item!") {
+    event_0.data = "SELL item_3 100 1";
+    auto egress_event = Command::parse(std::move(event_0))->execute(database);
+    REQUIRE(egress_event.username.value() == username_0);
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data == "You can't sell your item, there is no item_3!");
+    REQUIRE(accounts.get_funds(username_0) == 1000);
+    REQUIRE(accounts.get_items(username_0) == "item_0\nitem_1\nitem_0");
+    REQUIRE(auctions.get_printable_list().empty());
+  }
+
+  SECTION("Fail at putting an item into sale - price out of bounds!") {
+    event_0.data =
+        "SELL item_1 "
+        "1000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "000000000000000000000000000000000000000000000000 1";
+    auto egress_event = Command::parse(std::move(event_0))->execute(database);
+    REQUIRE(egress_event.username.value() == username_0);
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data == "You can't sell your item, invalid argument!");
+    REQUIRE(accounts.get_funds(username_0) == 1000);
+    REQUIRE(accounts.get_items(username_0) == "item_0\nitem_1\nitem_0");
+    REQUIRE(auctions.get_printable_list().empty());
+  }
+
+  SECTION("Fail at putting an item into sale - time out of bounds!") {
+    event_0.data =
+        "SELL item_1 100"
+        "1000000000000000000000000000000000000000000000000000000000000000000000"
+        "0000000000000000000000000000000000000000000000000000000000000000000000"
+        "000000000000000000000000000000000000000000000000";
+    auto egress_event = Command::parse(std::move(event_0))->execute(database);
+    REQUIRE(egress_event.username.value() == username_0);
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data ==
+            "You can't sell your item, invalid argument!");
+    REQUIRE(accounts.get_funds(username_0) == 1000);
+    REQUIRE(accounts.get_items(username_0) == "item_0\nitem_1\nitem_0");
+    REQUIRE(auctions.get_printable_list().empty());
+  }
+
+  SECTION("Fail at putting an item into sale - when a user is not logged in!") {
+    event_0.username = {};
+    event_0.data = "SELL item_1 100";
+    auto egress_event = Command::parse(std::move(event_0))->execute(database);
+    REQUIRE(!egress_event.username.has_value());
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data ==
+            "Selling of an item has failed! Are you logged in?");
+    REQUIRE(auctions.get_printable_list().empty());
   }
 }

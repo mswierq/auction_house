@@ -6,8 +6,6 @@
 
 namespace auction_engine {
 
-AuctionId AuctionList::_next_id = 0;
-
 bool AuctionList::add_auction(Auction &&auction) {
   auto result = false;
   {

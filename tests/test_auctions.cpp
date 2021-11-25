@@ -65,7 +65,7 @@ TEST_CASE("Single thread Auction lists manipulations", "[Auctions]") {
   }
 
   SECTION("Bid and then collect expired auctions") {
-    auctions.bid_item(7, 500, "new_buyer");
+    auctions.bid_item(1, 500, "new_buyer");
 
     auto start_at = time_zero + std::chrono::milliseconds(200);
 
@@ -89,14 +89,14 @@ TEST_CASE("Single thread Auction lists manipulations", "[Auctions]") {
   }
 
   SECTION("Print the current auctions list") {
-    auctions.bid_item(11, 500, "new_buyer");
+    auctions.bid_item(2, 500, "new_buyer");
 
     REQUIRE_THAT(
         auctions.get_printable_list(),
         UnorderedEquals<std::string>(
-            {{"ID: 9; ITEM: item; OWNER: owner; PRICE: 100; BUYER: "},
-             {"ID: 10; ITEM: item_2; OWNER: owner_2; PRICE: 200; BUYER: "},
-             {"ID: 11; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
+            {{"ID: 0; ITEM: item; OWNER: owner; PRICE: 100; BUYER: "},
+             {"ID: 1; ITEM: item_2; OWNER: owner_2; PRICE: 200; BUYER: "},
+             {"ID: 2; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
               "new_buyer"}}));
   }
 
@@ -104,14 +104,14 @@ TEST_CASE("Single thread Auction lists manipulations", "[Auctions]") {
           "auctions list") {
     auto start_at = time_zero + std::chrono::milliseconds(200);
 
-    auctions.bid_item(14, 500, "new_buyer");
+    auctions.bid_item(2, 500, "new_buyer");
 
     REQUIRE_THAT(
         auctions.get_printable_list(),
         UnorderedEquals<std::string>(
-            {{"ID: 12; ITEM: item; OWNER: owner; PRICE: 100; BUYER: "},
-             {"ID: 13; ITEM: item_2; OWNER: owner_2; PRICE: 200; BUYER: "},
-             {"ID: 14; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
+            {{"ID: 0; ITEM: item; OWNER: owner; PRICE: 100; BUYER: "},
+             {"ID: 1; ITEM: item_2; OWNER: owner_2; PRICE: 200; BUYER: "},
+             {"ID: 2; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
               "new_buyer"}}));
 
     auctions.wait_for_expired();
@@ -119,7 +119,7 @@ TEST_CASE("Single thread Auction lists manipulations", "[Auctions]") {
     REQUIRE_THAT(
         auctions.get_printable_list(),
         UnorderedEquals<std::string>(
-            {{"ID: 14; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
+            {{"ID: 2; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
               "new_buyer"}}));
 
     auctions.add_auction({"owner_4",
@@ -130,9 +130,9 @@ TEST_CASE("Single thread Auction lists manipulations", "[Auctions]") {
     REQUIRE_THAT(
         auctions.get_printable_list(),
         UnorderedEquals<std::string>(
-            {{"ID: 14; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
+            {{"ID: 2; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
               "new_buyer"},
-             {"ID: 15; ITEM: pretty_item; OWNER: owner_4; PRICE: 400; "
+             {"ID: 3; ITEM: pretty_item; OWNER: owner_4; PRICE: 400; "
               "BUYER: "}}));
 
     auctions.wait_for_expired();
@@ -150,7 +150,7 @@ TEST_CASE("Single thread Auction lists manipulations", "[Auctions]") {
     REQUIRE_THAT(
         auctions.get_printable_list(),
         UnorderedEquals<std::string>(
-            {{"ID: 14; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
+            {{"ID: 2; ITEM: item_3; OWNER: owner_3; PRICE: 500; BUYER: "
               "new_buyer"}}));
   }
 }

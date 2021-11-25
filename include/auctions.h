@@ -56,7 +56,7 @@ private:
   std::shared_mutex _mutex;
   std::condition_variable_any _cv_empty_list;
   std::condition_variable_any _cv_timer;
-  static AuctionId _next_id;
+  AuctionId _next_id = 0;
   TimePoint _nearest_expire = TimePoint::max();
 };
 } // namespace auction_engine
