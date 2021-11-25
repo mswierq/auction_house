@@ -65,8 +65,10 @@ ExpiredAuctions AuctionList::collect_expired() {
 
 void AuctionList::wait_for_expired() {
   std::unique_lock lck{_mutex};
-  // waits for the auction nearest to expire or for a new auction to be added
-  _cv_timer.wait_until(lck, _nearest_expire);
+  // waits for at least one expired auction
+  _cv_timer.wait_until(lck, _nearest_expire, [this]() {
+    return this->_nearest_expire <= Clock::now();
+  });
   // waits if there is no auctions at all
   _cv_empty_list.wait(lck, [this]() { return !this->_auctions.empty(); });
 }
