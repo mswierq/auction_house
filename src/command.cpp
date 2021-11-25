@@ -49,7 +49,7 @@ public:
 
   UserEvent execute(Database &database) override {
     try {
-      if (database.sessions.login(_event.session_id.value(), _username)) {
+      if (database.sessions.login(_event.session_id, _username)) {
         auto data = "Welcome " + _username + "!";
         return {std::move(_username), _event.session_id, std::move(data)};
       }
@@ -69,7 +69,7 @@ public:
 
   UserEvent execute(Database &database) override {
     try {
-      if (database.sessions.logout(_event.session_id.value())) {
+      if (database.sessions.logout(_event.session_id)) {
         auto data = "Good bay, " + _event.username.value() + "!";
         return {std::move(_event.username), _event.session_id, std::move(data)};
       }
@@ -320,8 +320,8 @@ public:
       return {{}, _event.session_id, "You are not logged in!"};
     }
     auto egress_event = std::move(_event);
-    egress_event.data =
-        "Your items:\n" + database.accounts.get_items(egress_event.username.value());
+    egress_event.data = "Your items:\n" + database.accounts.get_items(
+                                              egress_event.username.value());
     return egress_event;
   }
 };
@@ -336,8 +336,8 @@ public:
     }
     auto egress_event = std::move(_event);
     egress_event.data =
-        "Your funds: " +
-        std::to_string(database.accounts.get_funds(egress_event.username.value()));
+        "Your funds: " + std::to_string(database.accounts.get_funds(
+                             egress_event.username.value()));
     return egress_event;
   }
 };

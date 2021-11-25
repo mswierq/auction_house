@@ -25,7 +25,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "LOGIN username";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data == "Welcome username!");
       REQUIRE(sessions.get_username(session_id).value() == "username");
       REQUIRE(sessions.get_session_id("username").value() == session_id);
@@ -37,7 +37,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "LOGIN username";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(!egress_event.username.has_value());
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data == "Couldn't login as username!");
       REQUIRE(!sessions.get_username(session_id).has_value());
       REQUIRE(sessions.get_session_id("username").value() == 2);
@@ -49,7 +49,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "LOGOUT";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data == "Good bay, username!");
       REQUIRE(!sessions.get_username(session_id).has_value());
       REQUIRE(!sessions.get_session_id("username").has_value());
@@ -59,7 +59,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "LOGOUT";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(!egress_event.username.has_value());
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data == "You are not logged in!");
       REQUIRE(!sessions.get_username(session_id).has_value());
     }
@@ -69,7 +69,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
     event.data = "LOGOUT 1 ? whatIs it!!";
     auto egress_event = Command::parse(std::move(event))->execute(database);
     REQUIRE(!egress_event.username.has_value());
-    REQUIRE(egress_event.session_id.value() == session_id);
+    REQUIRE(egress_event.session_id == session_id);
     REQUIRE(egress_event.data == "WRONG COMMAND: LOGOUT 1 ? whatIs it!!");
   }
 
@@ -80,7 +80,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "DEPOSIT FUNDS 100";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data == "Successful deposition of funds: 100!");
       REQUIRE(accounts.get_funds("username") == 100);
     }
@@ -89,7 +89,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "DEPOSIT FUNDS 100";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(!egress_event.username.has_value());
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Deposition of funds has failed! Are you logged in?");
       REQUIRE(accounts.get_funds("username") == 0);
@@ -101,7 +101,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "DEPOSIT FUNDS invalid100";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data == "WRONG COMMAND: DEPOSIT FUNDS invalid100");
       REQUIRE(accounts.get_funds("username") == 0);
     }
@@ -115,7 +115,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
           "000000000000000000000";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Deposition of funds has failed! Invalid amount!");
       REQUIRE(accounts.get_funds("username") == 0);
@@ -129,7 +129,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "DEPOSIT ITEM my_pretty_item";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Successful deposition of item: my_pretty_item!");
       REQUIRE(accounts.get_items("username") == "my_pretty_item");
@@ -139,7 +139,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "DEPOSIT ITEM my_pretty_item";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(!egress_event.username.has_value());
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Deposition of an item has failed! Are you logged in?");
       REQUIRE(accounts.get_items("username").empty());
@@ -154,7 +154,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "WITHDRAW FUNDS 100";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data == "Successfully withdrawn: 100!");
       REQUIRE(accounts.get_funds("username") == 900);
     }
@@ -163,7 +163,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "WITHDRAW FUNDS 100";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(!egress_event.username.has_value());
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Withdrawal of funds has failed! Are you logged in?");
       REQUIRE(accounts.get_funds("username") == 0);
@@ -176,7 +176,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "WITHDRAW FUNDS invalid100";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data == "WRONG COMMAND: WITHDRAW FUNDS invalid100");
       REQUIRE(accounts.get_funds("username") == 1000);
     }
@@ -191,7 +191,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
           "000000000000000000000";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Withdrawal of funds has failed! Invalid amount!");
       REQUIRE(accounts.get_funds("username") == 1000);
@@ -205,7 +205,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
                    "2000";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Withdrawal of funds has failed! Insufficient funds!");
       REQUIRE(accounts.get_funds("username") == 1000);
@@ -221,7 +221,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "WITHDRAW ITEM my_ugly_item";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == "username");
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Successfully withdrawn item: my_ugly_item!");
       REQUIRE(accounts.get_items("username") == "my_pretty_item");
@@ -231,7 +231,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "WITHDRAW ITEM my_pretty_item";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(!egress_event.username.has_value());
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Withdrawal of an item has failed! Are you logged in?");
       REQUIRE(accounts.get_items("username").empty());
@@ -243,7 +243,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "DEPOSIT ITEM my_ugly_item";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(!egress_event.username.has_value());
-      REQUIRE(egress_event.session_id.value() == session_id);
+      REQUIRE(egress_event.session_id == session_id);
       REQUIRE(egress_event.data ==
               "Deposition of an item has failed! Are you logged in?");
       REQUIRE(accounts.get_items("username") == "my_pretty_item");
@@ -282,7 +282,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
     event_0.data = "SELL item_0 100";
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data == "Your item item_0 is being auctioned off!");
     REQUIRE(accounts.get_items(username_0) == "item_1\nitem_0");
     REQUIRE(accounts.get_funds(username_0) == 999); // charge for selling an
@@ -297,7 +297,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
     event_0.data = "SELL item_0 100 1";
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data == "Your item item_0 is being auctioned off!");
     REQUIRE(accounts.get_funds(username_0) == 999); // charge for selling an
                                                     // item
@@ -310,7 +310,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       event_1.data = "BID 0 200";
       auto egress_event = Command::parse(std::move(event_1))->execute(database);
       REQUIRE(egress_event.username.value() == username_1);
-      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.session_id == user_1_sess_id);
       REQUIRE(egress_event.data == "You are winning the auction 0!");
       REQUIRE(accounts.get_funds(username_1) == 800);
       REQUIRE_THAT(auctions.get_printable_list(),
@@ -324,7 +324,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       event_1.data = "BID 0 100";
       auto egress_event = Command::parse(std::move(event_1))->execute(database);
       REQUIRE(egress_event.username.value() == username_1);
-      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.session_id == user_1_sess_id);
       REQUIRE(egress_event.data == "Your offer for the auction 0 was too low!");
       REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
@@ -337,7 +337,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       event_1.data = "BID 1 200";
       auto egress_event = Command::parse(std::move(event_1))->execute(database);
       REQUIRE(egress_event.username.value() == username_1);
-      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.session_id == user_1_sess_id);
       REQUIRE(egress_event.data == "There is no such auction!");
       REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
@@ -354,7 +354,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
                      "0000000000000000000000000 200";
       auto egress_event = Command::parse(std::move(event_1))->execute(database);
       REQUIRE(egress_event.username.value() == username_1);
-      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.session_id == user_1_sess_id);
       REQUIRE(egress_event.data == "The bid arguments are invalid!");
       REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
@@ -372,7 +372,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
           "0000000000000000000000000";
       auto egress_event = Command::parse(std::move(event_1))->execute(database);
       REQUIRE(egress_event.username.value() == username_1);
-      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.session_id == user_1_sess_id);
       REQUIRE(egress_event.data == "The bid arguments are invalid!");
       REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
@@ -386,7 +386,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       event_1.data = "BID 0 10000";
       auto egress_event = Command::parse(std::move(event_1))->execute(database);
       REQUIRE(!egress_event.username.has_value());
-      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.session_id == user_1_sess_id);
       REQUIRE(egress_event.data ==
               "Bidding an item has failed! Are you logged in?");
       REQUIRE(accounts.get_funds(username_1) == 1000);
@@ -400,7 +400,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       UserEvent event{username_0, user_0_sess_id, "BID 0 200"};
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == username_0);
-      REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+      REQUIRE(egress_event.session_id == user_0_sess_id);
       REQUIRE(egress_event.data ==
               "You can't bid on the auction 0, you are the seller!");
       REQUIRE(accounts.get_funds(username_0) == 999);
@@ -414,7 +414,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       UserEvent event{username_1, user_1_sess_id, "BID 0 2000"};
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.username.value() == username_1);
-      REQUIRE(egress_event.session_id.value() == user_1_sess_id);
+      REQUIRE(egress_event.session_id == user_1_sess_id);
       REQUIRE(egress_event.data ==
               "You can't bid on the auction 0, you don't have enough funds!");
       REQUIRE(accounts.get_funds(username_1) == 1000);
@@ -431,7 +431,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
     event_0.data = "SELL item_0 100 1";
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data ==
             "You can't sell your item, you don't have funds to cover the fee!");
     REQUIRE(accounts.get_funds(username_0) == 0);
@@ -443,7 +443,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
     event_0.data = "SELL item_3 100 1";
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data ==
             "You can't sell your item, there is no item_3!");
     REQUIRE(accounts.get_funds(username_0) == 1000);
@@ -459,7 +459,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
         "000000000000000000000000000000000000000000000000 1";
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data == "You can't sell your item, invalid argument!");
     REQUIRE(accounts.get_funds(username_0) == 1000);
     REQUIRE(accounts.get_items(username_0) == "item_0\nitem_1\nitem_0");
@@ -474,7 +474,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
         "000000000000000000000000000000000000000000000000";
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data == "You can't sell your item, invalid argument!");
     REQUIRE(accounts.get_funds(username_0) == 1000);
     REQUIRE(accounts.get_items(username_0) == "item_0\nitem_1\nitem_0");
@@ -486,7 +486,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
     event_0.data = "SELL item_1 100";
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(!egress_event.username.has_value());
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data ==
             "Selling of an item has failed! Are you logged in?");
     REQUIRE(auctions.get_printable_list().empty());
@@ -529,7 +529,7 @@ TEST_CASE("Test execution of show commands", "[Commands]") {
     UserEvent event = {username_0, user_0_sess_id, "SHOW ITEMS"};
     auto egress_event = Command::parse(std::move(event))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(accounts.get_items(username_0) == "item_0\nitem_1\nitem_0");
     REQUIRE(egress_event.data == "Your items:\nitem_0\nitem_1\nitem_0");
   }
@@ -538,7 +538,7 @@ TEST_CASE("Test execution of show commands", "[Commands]") {
     UserEvent event = {{}, user_0_sess_id, "SHOW ITEMS"};
     auto egress_event = Command::parse(std::move(event))->execute(database);
     REQUIRE(!egress_event.username.has_value());
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data == "You are not logged in!");
   }
 
@@ -546,7 +546,7 @@ TEST_CASE("Test execution of show commands", "[Commands]") {
     UserEvent event = {username_0, user_0_sess_id, "SHOW FUNDS"};
     auto egress_event = Command::parse(std::move(event))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(accounts.get_funds(username_0) == 1000);
     REQUIRE(egress_event.data == "Your funds: 1000");
   }
@@ -555,7 +555,7 @@ TEST_CASE("Test execution of show commands", "[Commands]") {
     UserEvent event = {{}, user_0_sess_id, "SHOW FUNDS"};
     auto egress_event = Command::parse(std::move(event))->execute(database);
     REQUIRE(!egress_event.username.has_value());
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data == "You are not logged in!");
   }
 
@@ -563,7 +563,7 @@ TEST_CASE("Test execution of show commands", "[Commands]") {
     UserEvent event = {username_0, user_0_sess_id, "SHOW SALES"};
     auto egress_event = Command::parse(std::move(event))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE_THAT(
         egress_event.data,
         Contains(
@@ -589,7 +589,7 @@ TEST_CASE("Test execution of show commands", "[Commands]") {
     UserEvent event = {{}, user_0_sess_id, "SHOW SALES"};
     auto egress_event = Command::parse(std::move(event))->execute(database);
     REQUIRE(!egress_event.username.has_value());
-    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data == "You are not logged in!");
   }
 }
