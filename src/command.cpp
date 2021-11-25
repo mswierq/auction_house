@@ -3,6 +3,7 @@
 //
 #include "command.h"
 #include "database.h"
+#include <numeric>
 #include <regex>
 
 namespace auction_engine {
@@ -310,6 +311,59 @@ private:
   std::string _new_price;
 };
 
+class ShowItemsCommand : public Command {
+public:
+  ShowItemsCommand(UserEvent &&event) : Command(std::move(event)) {}
+
+  UserEvent execute(Database &database) override {
+    if (!_event.username.has_value()) {
+      return {{}, _event.session_id, "You are not logged in!"};
+    }
+    auto egress_event = std::move(_event);
+    egress_event.data =
+        "Your items:\n" + database.accounts.get_items(egress_event.username.value());
+    return egress_event;
+  }
+};
+
+class ShowFundsCommand : public Command {
+public:
+  ShowFundsCommand(UserEvent &&event) : Command(std::move(event)) {}
+
+  UserEvent execute(Database &database) override {
+    if (!_event.username.has_value()) {
+      return {{}, _event.session_id, "You are not logged in!"};
+    }
+    auto egress_event = std::move(_event);
+    egress_event.data =
+        "Your funds: " +
+        std::to_string(database.accounts.get_funds(egress_event.username.value()));
+    return egress_event;
+  }
+};
+
+class ShowSalesCommand : public Command {
+public:
+  ShowSalesCommand(UserEvent &&event) : Command(std::move(event)) {}
+
+  UserEvent execute(Database &database) override {
+    if (!_event.username.has_value()) {
+      return {{}, _event.session_id, "You are not logged in!"};
+    }
+    auto egress_event = std::move(_event);
+    auto auctions = database.auctions.get_printable_list();
+    egress_event.data =
+        "SALES:\n" + std::accumulate(auctions.begin(), auctions.end(),
+                                     std::string{}, [](auto &a, auto &b) {
+                                       if (a.empty()) {
+                                         return b;
+                                       }
+                                       return a + "\n" + b;
+                                     });
+    return egress_event;
+  }
+};
+
 class WrongCommand : public Command {
 public:
   WrongCommand(UserEvent &&event) : Command(std::move(event)) {}
@@ -366,6 +420,18 @@ CommandPtr Command::parse(UserEvent &&event) {
   if (std::regex_match(event.data, matches, bid_regex)) {
     return CommandPtr{new BidItemCommand{std::move(event), matches[2].str(),
                                          matches[3].str()}};
+  }
+
+  if (std::regex_match(event.data, matches, show_funds_regex)) {
+    return CommandPtr{new ShowFundsCommand{std::move(event)}};
+  }
+
+  if (std::regex_match(event.data, matches, show_items_regex)) {
+    return CommandPtr{new ShowItemsCommand{std::move(event)}};
+  }
+
+  if (std::regex_match(event.data, matches, show_sales_regex)) {
+    return CommandPtr{new ShowSalesCommand{std::move(event)}};
   }
 
   return CommandPtr{new WrongCommand{std::move(event)}};

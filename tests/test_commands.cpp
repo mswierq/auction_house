@@ -6,6 +6,7 @@
 #include <catch2/catch.hpp>
 
 using namespace auction_engine;
+using Catch::Matchers::Contains;
 using Catch::Matchers::UnorderedEquals;
 
 TEST_CASE("Test execution of user account related commands", "[Commands]") {
@@ -443,7 +444,8 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
     REQUIRE(egress_event.session_id.value() == user_0_sess_id);
-    REQUIRE(egress_event.data == "You can't sell your item, there is no item_3!");
+    REQUIRE(egress_event.data ==
+            "You can't sell your item, there is no item_3!");
     REQUIRE(accounts.get_funds(username_0) == 1000);
     REQUIRE(accounts.get_items(username_0) == "item_0\nitem_1\nitem_0");
     REQUIRE(auctions.get_printable_list().empty());
@@ -473,8 +475,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.username.value() == username_0);
     REQUIRE(egress_event.session_id.value() == user_0_sess_id);
-    REQUIRE(egress_event.data ==
-            "You can't sell your item, invalid argument!");
+    REQUIRE(egress_event.data == "You can't sell your item, invalid argument!");
     REQUIRE(accounts.get_funds(username_0) == 1000);
     REQUIRE(accounts.get_items(username_0) == "item_0\nitem_1\nitem_0");
     REQUIRE(auctions.get_printable_list().empty());
@@ -525,14 +526,70 @@ TEST_CASE("Test execution of show commands", "[Commands]") {
   REQUIRE(auctions.bid_item(1, 500, username_1) == BidResult::Successful);
 
   SECTION("Show user's items") {
+    UserEvent event = {username_0, user_0_sess_id, "SHOW ITEMS"};
+    auto egress_event = Command::parse(std::move(event))->execute(database);
+    REQUIRE(egress_event.username.value() == username_0);
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(accounts.get_items(username_0) == "item_0\nitem_1\nitem_0");
+    REQUIRE(egress_event.data == "Your items:\nitem_0\nitem_1\nitem_0");
+  }
 
+  SECTION("Fail at showing user's items when no logged in") {
+    UserEvent event = {{}, user_0_sess_id, "SHOW ITEMS"};
+    auto egress_event = Command::parse(std::move(event))->execute(database);
+    REQUIRE(!egress_event.username.has_value());
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data == "You are not logged in!");
   }
 
   SECTION("Show user's funds") {
-
+    UserEvent event = {username_0, user_0_sess_id, "SHOW FUNDS"};
+    auto egress_event = Command::parse(std::move(event))->execute(database);
+    REQUIRE(egress_event.username.value() == username_0);
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(accounts.get_funds(username_0) == 1000);
+    REQUIRE(egress_event.data == "Your funds: 1000");
   }
 
-  SECTION("Show auctions") {
+  SECTION("Fail at showing user's funds when no logged in") {
+    UserEvent event = {{}, user_0_sess_id, "SHOW FUNDS"};
+    auto egress_event = Command::parse(std::move(event))->execute(database);
+    REQUIRE(!egress_event.username.has_value());
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data == "You are not logged in!");
+  }
 
+  SECTION("Show sales") {
+    UserEvent event = {username_0, user_0_sess_id, "SHOW SALES"};
+    auto egress_event = Command::parse(std::move(event))->execute(database);
+    REQUIRE(egress_event.username.value() == username_0);
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE_THAT(
+        egress_event.data,
+        Contains(
+            "ID: 0; ITEM: item_4; OWNER: username_0; PRICE: 100; BUYER: "));
+    REQUIRE_THAT(egress_event.data,
+                 Contains("ID: 1; ITEM: item_5; OWNER: username_0; PRICE: 500; "
+                          "BUYER: username_1"));
+    REQUIRE_THAT(
+        egress_event.data,
+        Contains(
+            "ID: 2; ITEM: item_6; OWNER: username_1; PRICE: 400; BUYER: "));
+    REQUIRE_THAT(
+        egress_event.data,
+        Contains(
+            "ID: 3; ITEM: item_7; OWNER: username_1; PRICE: 300; BUYER: "));
+    REQUIRE_THAT(
+        egress_event.data,
+        Contains(
+            "ID: 4; ITEM: item_8; OWNER: username_1; PRICE: 500; BUYER: "));
+  }
+
+  SECTION("Fail at showing sales when no logged in") {
+    UserEvent event = {{}, user_0_sess_id, "SHOW SALES"};
+    auto egress_event = Command::parse(std::move(event))->execute(database);
+    REQUIRE(!egress_event.username.has_value());
+    REQUIRE(egress_event.session_id.value() == user_0_sess_id);
+    REQUIRE(egress_event.data == "You are not logged in!");
   }
 }
