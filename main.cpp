@@ -16,7 +16,9 @@ int main() {
   auction_engine::SessionManager sessions;
   auction_engine::Database database{accounts, auctions, sessions};
   auction_engine::TasksQueue queue;
+  auction_engine::Network network{database, queue};
 
+  // Auctions processor
   std::thread auctions_proc{[&database, &queue]() {
     for (;;) {
       database.auctions.wait_for_expired();
@@ -33,7 +35,8 @@ int main() {
     }
   }};
 
-  std::thread tasks_proc{[&queue]() {
+  // Tasks processor
+  std::thread tasks_proc{[&database, &queue, &network]() {
     for (;;) {
       auto task = queue.pop();
       task.wait();
@@ -41,8 +44,18 @@ int main() {
       try {
         auto event = task.get();
         if (event.session_id.has_value()) {
-          spdlog::debug("Send to session {} data: {}", event.session_id.value(),
-                        event.data);
+          auto session_id = event.session_id.value();
+          auto connection =
+              database.sessions.get_connection_id(event.session_id.value());
+          if (connection.has_value()) {
+            auto connection_id = connection.value();
+            spdlog::debug("Sending reply to session {}, connection {}, data {}", session_id, connection_id, event.data);
+            network.send_data(connection_id, event.data);
+          } else {
+            spdlog::debug("Dropping event, lack of connection "
+                          "for session {}, data: {}",
+                          event.session_id.value(), event.data);
+          }
         } else {
           spdlog::debug("Dropping event with data: {}", event.data);
         }
@@ -52,32 +65,8 @@ int main() {
     }
   }};
 
-  sessions.start_session(1, 1);
-  sessions.start_session(2, 2);
-  queue.enqueue(auction_engine::create_command_task({{}, 1, "HELP"}, database));
-  queue.enqueue(
-      auction_engine::create_command_task({{}, 1, "LOGIN user"}, database));
-  queue.enqueue(
-      auction_engine::create_command_task({{}, 1, "SHOW FUNDS"}, database));
-  queue.enqueue(
-      auction_engine::create_command_task({"user", 1, "SHOW FUNDS"}, database));
-  queue.enqueue(auction_engine::create_command_task(
-      {"user", 1, "DEPOSIT FUNDS 100"}, database));
-  queue.enqueue(
-      auction_engine::create_command_task({"user", 1, "SHOW FUNDS"}, database));
-  queue.enqueue(auction_engine::create_command_task(
-      {"user", 1, "DEPOSIT ITEM item"}, database));
-  queue.enqueue(
-      auction_engine::create_command_task({"user", 1, "SHOW Items"}, database));
-  queue.enqueue(
-      auction_engine::create_command_task({"user", 1, "SHOW SALES"}, database));
-  queue.enqueue(auction_engine::create_command_task(
-      {"user", 1, "SELL item 100 2"}, database));
-  queue.enqueue(
-      auction_engine::create_command_task({"user", 1, "SHOW SALES"}, database));
-  std::this_thread::sleep_for(std::chrono::seconds(3));
-  queue.enqueue(
-      auction_engine::create_command_task({"user", 1, "SHOW SALES"}, database));
+  // Sessions processor
+  network.receive_data();
 
   auctions_proc.join();
   tasks_proc.join();

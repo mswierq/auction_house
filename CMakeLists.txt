@@ -26,7 +26,8 @@ set(lib_src
         src/session.cpp
         src/tasks.cpp
         src/command.cpp
-        src/auction_processor.cpp)
+        src/auction_processor.cpp
+        src/network.cpp)
 add_library(lib_auction_engine ${lib_src})
 target_include_directories(lib_auction_engine PUBLIC include ${spdlog_INCLUDE_DIR})
 target_link_libraries(lib_auction_engine spdlog::spdlog)
