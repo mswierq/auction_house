@@ -9,6 +9,8 @@
 #include <thread>
 
 int main() {
+  spdlog::set_level(spdlog::level::info);
+
   auction_engine::Accounts accounts;
   auction_engine::AuctionList auctions;
   auction_engine::SessionManager sessions;

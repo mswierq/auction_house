@@ -24,7 +24,7 @@ static const auto withdraw_funds_regex =
 static const auto withdraw_item_regex =
     std::regex("\\s+*(WITHDRAW)\\s+(ITEM)\\s+(\\w+)\\s+*", std::regex::icase);
 static const auto sell_regex = std::regex(
-    "\\s+*(SELL)\\s+(\\w+)\\s+(\\d+)\\s+*(?:\\d+)?\\s+*", std::regex::icase);
+    "\\s+*(SELL)\\s+(\\w+)\\s+(\\d+)\\s+*(\\d+)?\\s+*", std::regex::icase);
 static const auto bid_regex =
     std::regex("\\s+*(BID)\\s+(\\d+)\\s+(\\d+)\\s+*", std::regex::icase);
 static const auto show_funds_regex =
