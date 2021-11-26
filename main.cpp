@@ -9,7 +9,7 @@
 #include <thread>
 
 int main() {
-  spdlog::set_level(spdlog::level::info);
+  spdlog::set_level(spdlog::level::debug);
 
   auction_engine::Accounts accounts;
   auction_engine::AuctionList auctions;
@@ -50,7 +50,7 @@ int main() {
           if (connection.has_value()) {
             auto connection_id = connection.value();
             spdlog::debug("Sending reply to session {}, connection {}, data {}", session_id, connection_id, event.data);
-            network.send_data(connection_id, event.data);
+            network.send_data(connection_id, std::move(event.data));
           } else {
             spdlog::debug("Dropping event, lack of connection "
                           "for session {}, data: {}",

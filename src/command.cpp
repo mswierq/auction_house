@@ -97,7 +97,7 @@ public:
 
   EgressEvent execute(Database &database) final {
     if (!_event.username.has_value()) {
-      spdlog::info("Not logged in session {}, tried to: ", _event.session_id,
+      spdlog::info("Not logged in session {}, tried to: {}", _event.session_id,
                    _event.data);
       return {_event.session_id, "You are not logged in!"};
     }

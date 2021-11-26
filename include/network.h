@@ -24,7 +24,7 @@ public:
 
   void receive_data(const uint16_t port = 9999);
 
-  void send_data(ConnectionId connection, const std::string &data);
+  void send_data(ConnectionId connection, std::string&& data);
 
 private:
   std::list<Connection> _connections;
