@@ -28,11 +28,12 @@ set(lib_src
         src/command.cpp
         src/auction_processor.cpp)
 add_library(lib_auction_engine ${lib_src})
-target_include_directories(lib_auction_engine PUBLIC include)
+target_include_directories(lib_auction_engine PUBLIC include ${spdlog_INCLUDE_DIR})
+target_link_libraries(lib_auction_engine spdlog::spdlog)
 
 add_executable(auction_house main.cpp)
 target_include_directories(auction_house PUBLIC include)
-target_link_libraries(auction_house lib_auction_engine spdlog::spdlog)
+target_link_libraries(auction_house lib_auction_engine)
 
 ## TESTS
 FetchContent_Declare(

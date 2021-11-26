@@ -4,6 +4,7 @@
 #include "command.h"
 #include "database.h"
 #include <catch2/catch.hpp>
+#include <spdlog/spdlog.h>
 
 using namespace auction_engine;
 using Catch::Matchers::Contains;
@@ -83,8 +84,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "DEPOSIT FUNDS 100";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.session_id == session_id);
-      REQUIRE(egress_event.data ==
-              "Deposition of funds has failed! Are you logged in?");
+      REQUIRE(egress_event.data == "You are not logged in!");
       REQUIRE(accounts.get_funds("username") == 0);
     }
 
@@ -129,8 +129,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "DEPOSIT ITEM my_pretty_item";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.session_id == session_id);
-      REQUIRE(egress_event.data ==
-              "Deposition of an item has failed! Are you logged in?");
+      REQUIRE(egress_event.data == "You are not logged in!");
       REQUIRE(accounts.get_items("username").empty());
     }
   }
@@ -151,8 +150,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "WITHDRAW FUNDS 100";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.session_id == session_id);
-      REQUIRE(egress_event.data ==
-              "Withdrawal of funds has failed! Are you logged in?");
+      REQUIRE(egress_event.data == "You are not logged in!");
       REQUIRE(accounts.get_funds("username") == 0);
     }
 
@@ -214,8 +212,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "WITHDRAW ITEM my_pretty_item";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.session_id == session_id);
-      REQUIRE(egress_event.data ==
-              "Withdrawal of an item has failed! Are you logged in?");
+      REQUIRE(egress_event.data == "You are not logged in!");
       REQUIRE(accounts.get_items("username").empty());
     }
 
@@ -225,8 +222,7 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
       event.data = "DEPOSIT ITEM my_ugly_item";
       auto egress_event = Command::parse(std::move(event))->execute(database);
       REQUIRE(egress_event.session_id == session_id);
-      REQUIRE(egress_event.data ==
-              "Deposition of an item has failed! Are you logged in?");
+      REQUIRE(egress_event.data == "You are not logged in!");
       REQUIRE(accounts.get_items("username") == "my_pretty_item");
     }
   }
@@ -382,8 +378,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       event_1.data = "BID 0 10000";
       auto egress_event = Command::parse(std::move(event_1))->execute(database);
       REQUIRE(egress_event.session_id == user_1_sess_id);
-      REQUIRE(egress_event.data ==
-              "Bidding an item has failed! Are you logged in?");
+      REQUIRE(egress_event.data == "You are not logged in!");
       REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
           auctions.get_printable_list(),
@@ -462,8 +457,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
     event_0.data = "SELL item_1 100";
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.session_id == user_0_sess_id);
-    REQUIRE(egress_event.data ==
-            "Selling of an item has failed! Are you logged in?");
+    REQUIRE(egress_event.data == "You are not logged in!");
     REQUIRE(auctions.get_printable_list().empty());
   }
 }

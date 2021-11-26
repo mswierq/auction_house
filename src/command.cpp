@@ -5,6 +5,7 @@
 #include "database.h"
 #include <numeric>
 #include <regex>
+#include <spdlog/spdlog.h>
 
 namespace auction_engine {
 
@@ -38,6 +39,8 @@ public:
   HelpCommand(IngressEvent &&event) : Command(std::move(event)) {}
 
   virtual EgressEvent execute(Database &) override {
+    spdlog::info("user {}, session {}, asked for help",
+                 _event.username.value_or(""), _event.session_id);
     return {_event.session_id, "print help here!"};
   }
 };
@@ -51,10 +54,16 @@ public:
     try {
       if (database.sessions.login(_event.session_id, _username)) {
         auto data = "Welcome " + _username + "!";
+        spdlog::info("user {}, session {}, has logged in!",
+                     _event.username.value_or(""), _event.session_id);
         return {_event.session_id, std::move(data)};
       }
     } catch (std::bad_optional_access &e) {
+      spdlog::error("user {}, session {}, unexpected error: ",
+                    _event.username.value_or(""), _event.session_id, e.what());
     }
+    spdlog::info("user {}, session {}, asked for help",
+                 _event.username.value_or(""), _event.session_id);
     return {_event.session_id, "Couldn't login as " + _username + "!"};
   }
 
@@ -70,36 +79,61 @@ public:
     try {
       if (database.sessions.logout(_event.session_id)) {
         auto data = "Good bay, " + _event.username.value() + "!";
+        spdlog::info("user {}, session {}, has logged out!",
+                     _event.username.value_or(""), _event.session_id);
         return {_event.session_id, std::move(data)};
       }
     } catch (std::bad_optional_access &e) {
+      spdlog::error("user {}, session {}, unexpected error: ",
+                    _event.username.value_or(""), _event.session_id, e.what());
     }
     return {_event.session_id, "You are not logged in!"};
   }
 };
 
-class DepositFundsCommand : public Command {
+class LimitedAccess : public Command {
+public:
+  LimitedAccess(IngressEvent &&event) : Command(std::move(event)) {}
+
+  EgressEvent execute(Database &database) final {
+    if (!_event.username.has_value()) {
+      spdlog::info("Not logged in session {}, tried to: ", _event.session_id,
+                   _event.data);
+      return {_event.session_id, "You are not logged in!"};
+    }
+    return execute_impl(database);
+  }
+
+protected:
+  virtual EgressEvent execute_impl(Database &database) = 0;
+};
+
+class DepositFundsCommand : public LimitedAccess {
 public:
   DepositFundsCommand(IngressEvent &&event, std::string &&amount)
-      : Command(std::move(event)), _amount(amount) {}
+      : LimitedAccess(std::move(event)), _amount(amount) {}
 
-  EgressEvent execute(Database &database) override {
-    if (!_event.username.has_value()) {
-      return {_event.session_id,
-              "Deposition of funds has failed! Are you logged in?"};
-    }
+protected:
+  EgressEvent execute_impl(Database &database) override {
     try {
       if (database.accounts.deposit_funds(_event.username.value(),
                                           parse_funds(_amount))) {
+        spdlog::info("user {}, session {}, deposited funds {} ",
+                     _event.username.value_or(""), _event.session_id, _amount);
         return {_event.session_id,
                 "Successful deposition of funds: " + _amount + "!"};
       }
-    } catch (std::bad_optional_access &) {
+    } catch (std::bad_optional_access &e) {
+      spdlog::error("user {}, session {}, unexpected error: {}",
+                    _event.username.value_or(""), _event.session_id, e.what());
       return {_event.session_id,
               "Deposition of funds has failed! Server error!"};
     } catch (std::invalid_argument &) {
     } catch (std::out_of_range &) {
     }
+    spdlog::warn(
+        "user {}, session {}, tried to deposit invalid amount of funds!",
+        _event.username.value_or(""), _event.session_id);
     return {_event.session_id,
             "Deposition of funds has failed! Invalid amount!"};
   }
@@ -108,21 +142,22 @@ private:
   std::string _amount;
 };
 
-class DepositItemCommand : public Command {
+class DepositItemCommand : public LimitedAccess {
 public:
   DepositItemCommand(IngressEvent &&event, std::string &&item)
-      : Command(std::move(event)), _item(item) {}
+      : LimitedAccess(std::move(event)), _item(item) {}
 
-  EgressEvent execute(Database &database) override {
-    if (!_event.username.has_value()) {
-      return {_event.session_id,
-              "Deposition of an item has failed! Are you logged in?"};
-    }
+protected:
+  EgressEvent execute_impl(Database &database) override {
     try {
       database.accounts.deposit_item(_event.username.value(), _item);
+      spdlog::info("user {}, session {}, deposited item: {} ",
+                   _event.username.value_or(""), _event.session_id, _item);
       return {_event.session_id,
               "Successful deposition of item: " + _item + "!"};
-    } catch (std::bad_optional_access &) {
+    } catch (std::bad_optional_access &e) {
+      spdlog::error("user {}, session {}, unexpected error: {}",
+                    _event.username.value_or(""), _event.session_id, e.what());
       return {_event.session_id,
               "Deposition of an item has failed! Server error!"};
     }
@@ -132,30 +167,36 @@ private:
   std::string _item;
 };
 
-class WithdrawFundsCommand : public Command {
+class WithdrawFundsCommand : public LimitedAccess {
 public:
   WithdrawFundsCommand(IngressEvent &&event, std::string &&amount)
-      : Command(std::move(event)), _amount(amount) {}
+      : LimitedAccess(std::move(event)), _amount(amount) {}
 
-  EgressEvent execute(Database &database) override {
-    if (!_event.username.has_value()) {
-      return {_event.session_id,
-              "Withdrawal of funds has failed! Are you logged in?"};
-    }
+protected:
+  EgressEvent execute_impl(Database &database) override {
     try {
       if (database.accounts.withdraw_funds(_event.username.value(),
                                            parse_funds(_amount))) {
+        spdlog::info("user {}, session {}, withdrawn funds: {} ",
+                     _event.username.value_or(""), _event.session_id, _amount);
         return {_event.session_id, "Successfully withdrawn: " + _amount + "!"};
       } else {
+        spdlog::info("user {}, session {}, tried to withdraw funds: {} ",
+                     _event.username.value_or(""), _event.session_id, _amount);
         return {_event.session_id,
                 "Withdrawal of funds has failed! Insufficient funds!"};
       }
-    } catch (std::bad_optional_access &) {
+    } catch (std::bad_optional_access &e) {
+      spdlog::error("user {}, session {}, unexpected error: {}",
+                    _event.username.value_or(""), _event.session_id, e.what());
       return {_event.session_id,
               "Withdrawal of funds has failed! Server error!"};
     } catch (std::invalid_argument &) {
     } catch (std::out_of_range &) {
     }
+    spdlog::warn(
+        "user {}, session {}, tried to withdraw invalid amount of funds!",
+        _event.username.value_or(""), _event.session_id);
     return {_event.session_id,
             "Withdrawal of funds has failed! Invalid amount!"};
   }
@@ -164,25 +205,28 @@ private:
   std::string _amount;
 };
 
-class WithdrawItemCommand : public Command {
+class WithdrawItemCommand : public LimitedAccess {
 public:
   WithdrawItemCommand(IngressEvent &&event, std::string &&item)
-      : Command(std::move(event)), _item(item) {}
+      : LimitedAccess(std::move(event)), _item(item) {}
 
-  EgressEvent execute(Database &database) override {
-    if (!_event.username.has_value()) {
-      return {_event.session_id,
-              "Withdrawal of an item has failed! Are you logged in?"};
-    }
+protected:
+  EgressEvent execute_impl(Database &database) override {
     try {
       if (database.accounts.withdraw_item(_event.username.value(), _item)) {
+        spdlog::info("user {}, session {}, withdrawn item: {} ",
+                     _event.username.value_or(""), _event.session_id, _item);
         return {_event.session_id,
                 "Successfully withdrawn item: " + _item + "!"};
       }
-    } catch (std::bad_optional_access &) {
+    } catch (std::bad_optional_access &e) {
+      spdlog::error("user {}, session {}, unexpected error: {}",
+                    _event.username.value_or(""), _event.session_id, e.what());
       return {_event.session_id,
               "Withdrawal of an item has failed! Server error!"};
     }
+    spdlog::info("user {}, session {}, tried to withdraw item: {} ",
+                 _event.username.value_or(""), _event.session_id, _item);
     return {_event.session_id,
             "Withdrawal of an item has failed! No such item: " + _item + "!"};
   }
@@ -191,17 +235,15 @@ private:
   std::string _item;
 };
 
-class SellItemCommand : public Command {
+class SellItemCommand : public LimitedAccess {
 public:
   SellItemCommand(IngressEvent &&event, std::string &&item, std::string &&price,
                   std::string &&time)
-      : Command(std::move(event)), _item(item), _price(price), _time(time) {}
+      : LimitedAccess(std::move(event)), _item(item), _price(price),
+        _time(time) {}
 
-  EgressEvent execute(Database &database) override {
-    if (!_event.username.has_value()) {
-      return {_event.session_id,
-              "Selling of an item has failed! Are you logged in?"};
-    }
+protected:
+  EgressEvent execute_impl(Database &database) override {
     std::string data{};
     try {
       auto &username = _event.username.value();
@@ -226,13 +268,20 @@ public:
       } else {
         data = "You can't sell your item, there is no " + _item + "!";
       }
-    } catch (std::bad_optional_access &) {
+    } catch (std::bad_optional_access &e) {
+      spdlog::error("user {}, session {}, unexpected error: {}",
+                    _event.username.value_or(""), _event.session_id, e.what());
       data = "Selling of an item has failed! Server error!";
     } catch (std::invalid_argument &) {
       data = "You can't sell your item, invalid argument!";
     } catch (std::out_of_range &) {
       data = "You can't sell your item, invalid argument!";
     }
+
+    spdlog::info("user {}, session {}, put item: {} on sale for {}, it "
+                 "will expire in {} seconds, transaction result: {}",
+                 _event.username.value_or(""), _event.session_id, _item, _price,
+                 _time, data);
 
     return {_event.session_id, std::move(data)};
   }
@@ -244,18 +293,15 @@ private:
   std::string _time;
 };
 
-class BidItemCommand : public Command {
+class BidItemCommand : public LimitedAccess {
 public:
   BidItemCommand(IngressEvent &&event, std::string &&auction_id,
                  std::string &&new_price)
-      : Command(std::move(event)), _auction_id(auction_id),
+      : LimitedAccess(std::move(event)), _auction_id(auction_id),
         _new_price(new_price) {}
 
-  EgressEvent execute(Database &database) override {
-    if (!_event.username.has_value()) {
-      return {_event.session_id,
-              "Bidding an item has failed! Are you logged in?"};
-    }
+protected:
+  EgressEvent execute_impl(Database &database) override {
     std::string data{};
     try {
       auto &new_buyer = _event.username.value();
@@ -278,13 +324,20 @@ public:
         data = "There is no such auction!";
         break;
       }
-    } catch (std::bad_optional_access &) {
+    } catch (std::bad_optional_access &e) {
+      spdlog::error("user {}, session {}, unexpected error: {}",
+                    _event.username.value_or(""), _event.session_id, e.what());
       data = "Bidding of an item has failed! Server error!";
     } catch (std::invalid_argument &) {
       data = "The bid arguments are invalid!";
     } catch (std::out_of_range &) {
       data = "The bid arguments are invalid!";
     }
+
+    spdlog::info("user {}, session {}, bit auction: {} on sale for {}, "
+                 "transaction result: {}",
+                 _event.username.value_or(""), _event.session_id, _auction_id,
+                 _new_price, data);
 
     return {_event.session_id, std::move(data)};
   }
@@ -294,41 +347,41 @@ private:
   std::string _new_price;
 };
 
-class ShowItemsCommand : public Command {
+class ShowItemsCommand : public LimitedAccess {
 public:
-  ShowItemsCommand(IngressEvent &&event) : Command(std::move(event)) {}
+  ShowItemsCommand(IngressEvent &&event) : LimitedAccess(std::move(event)) {}
 
-  EgressEvent execute(Database &database) override {
-    if (!_event.username.has_value()) {
-      return {_event.session_id, "You are not logged in!"};
-    }
+protected:
+  EgressEvent execute_impl(Database &database) override {
+    spdlog::info("user {}, session {}, asked for items list",
+                 _event.username.value_or(""), _event.session_id);
     return {_event.session_id, "Your items:\n" + database.accounts.get_items(
                                                      _event.username.value())};
   }
 };
 
-class ShowFundsCommand : public Command {
+class ShowFundsCommand : public LimitedAccess {
 public:
-  ShowFundsCommand(IngressEvent &&event) : Command(std::move(event)) {}
+  ShowFundsCommand(IngressEvent &&event) : LimitedAccess(std::move(event)) {}
 
-  EgressEvent execute(Database &database) override {
-    if (!_event.username.has_value()) {
-      return {_event.session_id, "You are not logged in!"};
-    }
+protected:
+  EgressEvent execute_impl(Database &database) override {
+    spdlog::info("user {}, session {}, asked for funds",
+                 _event.username.value_or(""), _event.session_id);
     return {_event.session_id,
             "Your funds: " + std::to_string(database.accounts.get_funds(
                                  _event.username.value()))};
   }
 };
 
-class ShowSalesCommand : public Command {
+class ShowSalesCommand : public LimitedAccess {
 public:
-  ShowSalesCommand(IngressEvent &&event) : Command(std::move(event)) {}
+  ShowSalesCommand(IngressEvent &&event) : LimitedAccess(std::move(event)) {}
 
-  EgressEvent execute(Database &database) override {
-    if (!_event.username.has_value()) {
-      return {_event.session_id, "You are not logged in!"};
-    }
+protected:
+  EgressEvent execute_impl(Database &database) override {
+    spdlog::info("user {}, session {}, asked for sales",
+                 _event.username.value_or(""), _event.session_id);
     auto auctions = database.auctions.get_printable_list();
     return {_event.session_id,
             "SALES:\n" + std::accumulate(auctions.begin(), auctions.end(),
@@ -346,12 +399,17 @@ public:
   WrongCommand(IngressEvent &&event) : Command(std::move(event)) {}
 
   EgressEvent execute(Database &) override {
+    spdlog::info("user {}, session {}, typed wrong command: {}",
+                 _event.username.value_or(""), _event.session_id, _event.data);
     return {_event.session_id, _event.data.insert(0, "WRONG COMMAND: ")};
   }
 };
 
 CommandPtr Command::parse(IngressEvent &&event) {
   std::smatch matches{};
+
+  spdlog::debug("user {}, session {}, parsing command: {}",
+                event.username.value_or(""), event.session_id, event.data);
 
   if (std::regex_match(event.data, help_regex)) {
     return CommandPtr{new HelpCommand{std::move(event)}};
