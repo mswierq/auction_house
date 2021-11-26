@@ -14,7 +14,7 @@ TEST_CASE("Test processing expired auctions", "[AuctionProcessor]") {
   Database database{accounts, auctions, sessions};
 
   auto seller = "seller";
-  auto buyer = "buyer";
+  std::string buyer = "buyer";
   FundsType price = 100;
   auto item = "item";
   auto time = Clock::now();
@@ -26,22 +26,87 @@ TEST_CASE("Test processing expired auctions", "[AuctionProcessor]") {
 
   SECTION("An item has been bought") {
     Auction auction = {seller, buyer, price, item, time};
+    FundsType funds = 1000;
+    REQUIRE(accounts.deposit_funds(buyer, funds));
 
     SECTION("The seller is logged in") {
-      sessions.login(seller_session, seller);
-      auto seller_event = process_auction(database, std::move(auction));
+      REQUIRE(sessions.login(seller_session, seller));
 
-      REQUIRE(seller_event.session_id == seller_session);
-      REQUIRE(seller_event.data == "Your item: item, has been sold for 100!");
-      REQUIRE(accounts.get_funds(seller) == price);
-      REQUIRE(accounts.get_items(buyer) == item);
+      SECTION("and successfully accepts the payment") {
+        auto seller_event = process_auction(database, std::move(auction));
+        REQUIRE(seller_event.session_id == seller_session);
+        REQUIRE(seller_event.data ==
+                "Your item: item, has been sold for 100 by " + buyer + "!");
+        REQUIRE(accounts.get_funds(seller) == price);
+        REQUIRE(accounts.get_items(buyer) == item);
+        REQUIRE(accounts.get_funds(buyer) == funds - price);
+      }
+
+      SECTION("and cannot accept the payment") {
+        auto max_funds = std::numeric_limits<FundsType>::max();
+        REQUIRE(accounts.deposit_funds(seller, max_funds));
+
+        auto seller_event = process_auction(database, std::move(auction));
+        REQUIRE(seller_event.session_id == seller_session);
+        REQUIRE(seller_event.data == "Your item: item, hasn't been sold! You "
+                                     "didn't accept the payment from " +
+                                         buyer + "!");
+        REQUIRE(accounts.get_funds(seller) == max_funds);
+        REQUIRE(accounts.get_items(buyer).empty());
+        REQUIRE(accounts.get_items(seller) == item);
+        REQUIRE(accounts.get_funds(buyer) == funds);
+      }
+
+      SECTION("and the buyer couldn't pay for the item") {
+        REQUIRE(accounts.withdraw_funds(buyer, funds));
+
+        auto seller_event = process_auction(database, std::move(auction));
+        REQUIRE(seller_event.session_id == seller_session);
+        REQUIRE(seller_event.data == "Your item: item, hasn't been sold! The " +
+                                         buyer + " couldn't pay for it!");
+        REQUIRE(accounts.get_funds(seller) == 0);
+        REQUIRE(accounts.get_items(buyer).empty());
+        REQUIRE(accounts.get_items(seller) == item);
+      }
     }
 
     SECTION("The seller is not logged in") {
-      auto seller_event = process_auction(database, std::move(auction));
-      REQUIRE(!seller_event.session_id.has_value());
-      REQUIRE(accounts.get_funds(seller) == price);
-      REQUIRE(accounts.get_items(buyer) == item);
+      SECTION("and successfully accepts the payment") {
+        auto seller_event = process_auction(database, std::move(auction));
+        REQUIRE(!seller_event.session_id.has_value());
+        REQUIRE(seller_event.data ==
+                "Your item: item, has been sold for 100 by " + buyer + "!");
+        REQUIRE(accounts.get_funds(seller) == price);
+        REQUIRE(accounts.get_items(buyer) == item);
+        REQUIRE(accounts.get_funds(buyer) == funds - price);
+      }
+
+      SECTION("and cannot accept the payment") {
+        auto max_funds = std::numeric_limits<FundsType>::max();
+        REQUIRE(accounts.deposit_funds(seller, max_funds));
+
+        auto seller_event = process_auction(database, std::move(auction));
+        REQUIRE(!seller_event.session_id.has_value());
+        REQUIRE(seller_event.data == "Your item: item, hasn't been sold! You "
+                                     "didn't accept the payment from " +
+                                         buyer + "!");
+        REQUIRE(accounts.get_funds(seller) == max_funds);
+        REQUIRE(accounts.get_items(buyer).empty());
+        REQUIRE(accounts.get_items(seller) == item);
+        REQUIRE(accounts.get_funds(buyer) == funds);
+      }
+
+      SECTION("and the buyer couldn't pay for the item") {
+        REQUIRE(accounts.withdraw_funds(buyer, funds));
+
+        auto seller_event = process_auction(database, std::move(auction));
+        REQUIRE(!seller_event.session_id.has_value());
+        REQUIRE(seller_event.data == "Your item: item, hasn't been sold! The " +
+                                         buyer + " couldn't pay for it!");
+        REQUIRE(accounts.get_funds(seller) == 0);
+        REQUIRE(accounts.get_items(buyer).empty());
+        REQUIRE(accounts.get_items(seller) == item);
+      }
     }
   }
 

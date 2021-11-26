@@ -260,7 +260,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
   IngressEvent event_1 = {username_1, user_1_sess_id, ""};
 
   SECTION("Successfully put an item into sale - default expiration time") {
-    event_0.data = "SELL item_0 100";
+    event_0.data = "SELL item_0 100 1";
     auto egress_event = Command::parse(std::move(event_0))->execute(database);
     REQUIRE(egress_event.session_id == user_0_sess_id);
     REQUIRE(egress_event.data == "Your item item_0 is being auctioned off!");
@@ -290,7 +290,7 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       auto egress_event = Command::parse(std::move(event_1))->execute(database);
       REQUIRE(egress_event.session_id == user_1_sess_id);
       REQUIRE(egress_event.data == "You are winning the auction 0!");
-      REQUIRE(accounts.get_funds(username_1) == 800);
+      REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(auctions.get_printable_list(),
                    UnorderedEquals<std::string>(
                        {{std::string("ID: 0; ITEM: item_0; OWNER: username_0; "
@@ -309,8 +309,8 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
             Command::parse(std::move(event_2))->execute(database);
         REQUIRE(egress_event.session_id == user_2_sess_id);
         REQUIRE(egress_event.data == "You are winning the auction 0!");
-        //        REQUIRE(accounts.get_funds(username_1) == 1000);
-        //        REQUIRE(accounts.get_funds(username_2) == 600); TODO
+        REQUIRE(accounts.get_funds(username_1) == 1000);
+        REQUIRE(accounts.get_funds(username_2) == 1000);
         REQUIRE_THAT(
             auctions.get_printable_list(),
             UnorderedEquals<std::string>(
@@ -398,19 +398,6 @@ TEST_CASE("Test execution of auction commands", "[Commands]") {
       REQUIRE(egress_event.data ==
               "You can't bid on the auction 0, you are the seller!");
       REQUIRE(accounts.get_funds(username_0) == 999);
-      REQUIRE_THAT(
-          auctions.get_printable_list(),
-          UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "
-                                         "username_0; PRICE: 100; BUYER: "}}));
-    }
-
-    SECTION("Try to bid without enough funds") {
-      IngressEvent event{username_1, user_1_sess_id, "BID 0 2000"};
-      auto egress_event = Command::parse(std::move(event))->execute(database);
-      REQUIRE(egress_event.session_id == user_1_sess_id);
-      REQUIRE(egress_event.data ==
-              "You can't bid on the auction 0, you don't have enough funds!");
-      REQUIRE(accounts.get_funds(username_1) == 1000);
       REQUIRE_THAT(
           auctions.get_printable_list(),
           UnorderedEquals<std::string>({{"ID: 0; ITEM: item_0; OWNER: "

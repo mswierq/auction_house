@@ -261,30 +261,22 @@ public:
       auto &new_buyer = _event.username.value();
       auto auction_id = std::stoull(_auction_id);
       auto new_price = parse_funds(_new_price);
-      if (database.accounts.withdraw_funds(new_buyer, new_price)) {
-        auto result =
-            database.auctions.bid_item(auction_id, new_price, new_buyer);
-        switch (result) {
-        case BidResult::Successful:
-          data = "You are winning the auction " + _auction_id + "!";
-          break;
-        case BidResult::TooLowPrice:
-          database.accounts.deposit_funds(new_buyer, new_price);
-          data = "Your offer for the auction " + _auction_id + " was too low!";
-          break;
-        case BidResult::OwnerBid:
-          database.accounts.deposit_funds(new_buyer, new_price);
-          data = "You can't bid on the auction " + _auction_id +
-                 ", you are the seller!";
-          break;
-        case BidResult::DoesNotExist:
-          database.accounts.deposit_funds(new_buyer, new_price);
-          data = "There is no such auction!";
-          break;
-        }
-      } else {
+      auto result =
+          database.auctions.bid_item(auction_id, new_price, new_buyer);
+      switch (result) {
+      case BidResult::Successful:
+        data = "You are winning the auction " + _auction_id + "!";
+        break;
+      case BidResult::TooLowPrice:
+        data = "Your offer for the auction " + _auction_id + " was too low!";
+        break;
+      case BidResult::OwnerBid:
         data = "You can't bid on the auction " + _auction_id +
-               ", you don't have enough funds!";
+               ", you are the seller!";
+        break;
+      case BidResult::DoesNotExist:
+        data = "There is no such auction!";
+        break;
       }
     } catch (std::bad_optional_access &) {
       data = "Bidding of an item has failed! Server error!";

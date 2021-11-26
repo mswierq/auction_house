@@ -24,11 +24,11 @@ The commands are case-insensitive, but the `<arguments>` are case-sensitive.
 ### Limitations and requirements
 
 - Putting an item into an auction charges the seller a fee equals to `1`, which is deducted instantly. If a user doesn't have funds to put an item into an auction it will fail.
-- When a user bids an item, the bid amount is deducted automatically from user's funds. If a user is outbid, funds come back to its account.
-- User can't bind if it doesn't have enough funds.
+- When a user bids an item, the bid amount is deducted when auction has expired. If a user doesn't have enough funds to cover the bid, the item comes back to the seller.
+- If the seller cannot accept the payment from the buyer for some reason (e.g. maximum number of funds has been reached), the item goes back to the seller account and the buyer is not charged.
 - User can store more than one item with the same name.
-- User can sell, deposit or withdraw only one item of the same name at a time.
 - Funds are represented as integer values.
+- Usernames and item names are alphanumerics.
 
 ## Server design
 
