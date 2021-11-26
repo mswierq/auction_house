@@ -65,10 +65,12 @@ public:
 
   EgressEvent execute(Database &database) override {
     try {
-      if(database.sessions.get_username(_event.session_id)) {
+      if (database.sessions.get_username(_event.session_id)) {
         spdlog::info("user {}, session {}, reject login second login as {}",
-                     _event.username.value_or(""), _event.session_id, _username);
-        return {_event.session_id, "You are already logged in as " + _event.username.value_or("") + "!"};
+                     _event.username.value_or(""), _event.session_id,
+                     _username);
+        return {_event.session_id, "You are already logged in as " +
+                                       _event.username.value_or("") + "!"};
       }
       if (database.sessions.login(_event.session_id, _username)) {
         auto data = "Welcome " + _username + "!";
