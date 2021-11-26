@@ -69,6 +69,25 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
     REQUIRE(egress_event.data == "WRONG COMMAND: LOGOUT 1 ? whatIs it!!");
   }
 
+  SECTION("Show help") {
+    event.data = "HELP";
+    auto egress_event = Command::parse(std::move(event))->execute(database);
+    REQUIRE(egress_event.session_id == session_id);
+    REQUIRE(egress_event.data == "Welcome, available commands:\n"
+                                 "\tHELP\n"
+                                 "\tLOGIN <username>\n"
+                                 "\tLOGOUT\n"
+                                 "\tDEPOSIT FUNDS <amount>\n"
+                                 "\tDEPOSIT ITEM <item>\n"
+                                 "\tWITHDRAWS FUNDS <amount>\n"
+                                 "\tWITHDRAWS FUNDS <item>\n"
+                                 "\tSELL <item> <starting-price> [<expiration-time>]\n"
+                                 "\tBID <auction-id> <new-price>\n"
+                                 "\tSHOW FUNDS\n"
+                                 "\tSHOW ITEMS\n"
+                                 "\tSHOW SALES");
+  }
+
   SECTION("Funds deposits") {
     SECTION("Successfully deposit funds") {
       sessions.login(session_id, "username");

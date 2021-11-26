@@ -41,7 +41,20 @@ public:
   virtual EgressEvent execute(Database &) override {
     spdlog::info("user {}, session {}, asked for help",
                  _event.username.value_or(""), _event.session_id);
-    return {_event.session_id, "print help here!"};
+    return {_event.session_id,
+            "Welcome, available commands:\n"
+            "\tHELP\n"
+            "\tLOGIN <username>\n"
+            "\tLOGOUT\n"
+            "\tDEPOSIT FUNDS <amount>\n"
+            "\tDEPOSIT ITEM <item>\n"
+            "\tWITHDRAWS FUNDS <amount>\n"
+            "\tWITHDRAWS FUNDS <item>\n"
+            "\tSELL <item> <starting-price> [<expiration-time>]\n"
+            "\tBID <auction-id> <new-price>\n"
+            "\tSHOW FUNDS\n"
+            "\tSHOW ITEMS\n"
+            "\tSHOW SALES"};
   }
 };
 

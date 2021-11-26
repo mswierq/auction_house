@@ -143,6 +143,7 @@ void Network::receive_data(const uint16_t port) {
               std::string(address_buffer, std::strlen(address_buffer)),
               htons(client_address.sin_port), client_fd, session_id,
               _connections.size());
+          _queue.enqueue(create_command_task({{}, session_id, "HELP"}, _database));
         } else {
           close(client_fd);
           spdlog::error("Starting new session {} for connection {} has failed!",
