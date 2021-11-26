@@ -157,7 +157,8 @@ void Network::receive_data(const uint16_t port) {
 }
 
 void Network::send_data(ConnectionId connection, std::string &&data) {
-  data.push_back('\n');
+  data.append("\nCMD>>");
+  data.insert(0, "RESP>> ");
   const auto *data_ptr = data.data();
   std::size_t n_bytes_to_send = data.size();
   std::size_t sent_bytes = 0;
