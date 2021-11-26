@@ -64,6 +64,9 @@ ExpiredAuctions AuctionList::collect_expired() {
       ++it;
     }
   }
+  if(_auctions.empty()) {
+    _nearest_expire = TimePoint::max();
+  }
   return expired;
 }
 
