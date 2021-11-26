@@ -26,116 +26,43 @@ TEST_CASE("Test processing expired auctions", "[AuctionProcessor]") {
 
   SECTION("An item has been bought") {
     Auction auction = {seller, buyer, price, item, time};
-    SECTION("The seller and the buyer are logged in") {
-      sessions.login(seller_session, seller);
-      sessions.login(buyer_session, buyer);
-      auto [seller_event, buyer_event] =
-          process_auction(database, std::move(auction));
-
-      REQUIRE(seller_event.has_value());
-      REQUIRE(seller_event.value().username.value() == seller);
-      REQUIRE(seller_event.value().session_id == seller_session);
-      REQUIRE(seller_event.value().data == "Your item: item, has been sold for 100!");
-      REQUIRE(accounts.get_funds(seller) == price);
-
-      REQUIRE(buyer_event.has_value());
-      REQUIRE(buyer_event.value().username.value() == buyer);
-      REQUIRE(buyer_event.value().session_id == buyer_session);
-      REQUIRE(buyer_event.value().data == "You have bought: item, for 100!");
-      REQUIRE(accounts.get_items(buyer) == item);
-    }
 
     SECTION("The seller is logged in") {
       sessions.login(seller_session, seller);
-      auto [seller_event, buyer_event] =
-          process_auction(database, std::move(auction));
+      auto seller_event = process_auction(database, std::move(auction));
 
-      REQUIRE(seller_event.has_value());
-      REQUIRE(seller_event.value().username.value() == seller);
-      REQUIRE(seller_event.value().session_id == seller_session);
-      REQUIRE(seller_event.value().data == "Your item: item, has been sold for 100!");
+      REQUIRE(seller_event.session_id == seller_session);
+      REQUIRE(seller_event.data == "Your item: item, has been sold for 100!");
       REQUIRE(accounts.get_funds(seller) == price);
-
-      REQUIRE(!buyer_event.has_value());
       REQUIRE(accounts.get_items(buyer) == item);
     }
 
-    SECTION("The buyer is logged in") {
-      sessions.login(buyer_session, buyer);
-      auto [seller_event, buyer_event] =
-          process_auction(database, std::move(auction));
-
-      REQUIRE(!seller_event.has_value());
+    SECTION("The seller is not logged in") {
+      auto seller_event = process_auction(database, std::move(auction));
+      REQUIRE(!seller_event.session_id.has_value());
       REQUIRE(accounts.get_funds(seller) == price);
-
-      REQUIRE(buyer_event.has_value());
-      REQUIRE(buyer_event.value().username.value() == buyer);
-      REQUIRE(buyer_event.value().session_id == buyer_session);
-      REQUIRE(buyer_event.value().data == "You have bought: item, for 100!");
-      REQUIRE(accounts.get_items(buyer) == item);
-    }
-
-    SECTION("Neither seller nor buyer are logged in") {
-      auto [seller_event, buyer_event] =
-          process_auction(database, std::move(auction));
-      REQUIRE(!seller_event.has_value());
-      REQUIRE(accounts.get_funds(seller) == price);
-
-      REQUIRE(!buyer_event.has_value());
       REQUIRE(accounts.get_items(buyer) == item);
     }
   }
 
   SECTION("Nobody bought an item") {
     Auction auction = {seller, {}, price, item, time};
-    SECTION("The seller and the buyer are logged in") {
-      sessions.login(seller_session, seller);
-      sessions.login(buyer_session, buyer);
-      auto [seller_event, buyer_event] =
-          process_auction(database, std::move(auction));
-
-      REQUIRE(seller_event.has_value());
-      REQUIRE(seller_event.value().username.value() == seller);
-      REQUIRE(seller_event.value().session_id == seller_session);
-      REQUIRE(seller_event.value().data == "Your item: item, hasn't been sold!");
-      REQUIRE(accounts.get_funds(seller) == 0);
-      REQUIRE(accounts.get_items(seller) == item);
-
-      REQUIRE(!buyer_event.has_value());
-    }
 
     SECTION("The seller is logged in") {
       sessions.login(seller_session, seller);
-      auto [seller_event, buyer_event] =
-          process_auction(database, std::move(auction));
+      auto seller_event = process_auction(database, std::move(auction));
 
-      REQUIRE(seller_event.has_value());
-      REQUIRE(seller_event.value().username.value() == seller);
-      REQUIRE(seller_event.value().session_id == seller_session);
-      REQUIRE(seller_event.value().data == "Your item: item, hasn't been sold!");
+      REQUIRE(seller_event.session_id.value() == seller_session);
+      REQUIRE(seller_event.data == "Your item: item, hasn't been sold!");
       REQUIRE(accounts.get_funds(seller) == 0);
-
-      REQUIRE(!buyer_event.has_value());
+      REQUIRE(accounts.get_items(seller) == item);
     }
 
-    SECTION("The buyer is logged in") {
-      sessions.login(buyer_session, buyer);
-      auto [seller_event, buyer_event] =
-          process_auction(database, std::move(auction));
-
-      REQUIRE(!seller_event.has_value());
+    SECTION("The seller is not logged in") {
+      auto seller_event = process_auction(database, std::move(auction));
+      REQUIRE(!seller_event.session_id.has_value());
       REQUIRE(accounts.get_funds(seller) == 0);
-
-      REQUIRE(!buyer_event.has_value());
-    }
-
-    SECTION("Neither seller nor buyer are logged in") {
-      auto [seller_event, buyer_event] =
-          process_auction(database, std::move(auction));
-      REQUIRE(!seller_event.has_value());
-      REQUIRE(accounts.get_funds(seller) == 0);
-
-      REQUIRE(!buyer_event.has_value());
+      REQUIRE(accounts.get_items(seller) == item);
     }
   }
 }

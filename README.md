@@ -41,7 +41,7 @@ The high-level overview how the server application is implemented.
 
 ### Tasks
 
-Tasks are asynchronous and are being executed either in parallel or synchronously (depends on the standard library implementation).
+Tasks are asynchronous and are being executed synchronously by the Tasks processor.
 The **Tasks processor** awaits the future objects in the **Tasks queue** to be finished and sends the result back to a user.
 Each task represents processing of a single command or notification from the **Auction** processor.
 
