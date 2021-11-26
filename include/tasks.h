@@ -7,13 +7,12 @@
 
 namespace auction_engine {
 class Database;
-class UserEvent;
 class Auction;
 
 using Task = std::future<EgressEvent>;
 
 // Consumes a user event and returns a task that process it
-Task create_command_task(UserEvent &&event, Database &database);
+Task create_command_task(IngressEvent &&event, Database &database);
 
 // Consumes an expired auction and returns a task that process it
 Task create_auction_task(Auction &&auction, Database &database);
