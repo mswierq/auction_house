@@ -8,6 +8,7 @@ namespace auction_engine {
 
 bool AuctionList::add_auction(Auction &&auction) {
   auto result = false;
+  auto change_timeout = false;
   {
     std::unique_lock _l{_mutex};
     auto id = _next_id++;
@@ -18,11 +19,16 @@ bool AuctionList::add_auction(Auction &&auction) {
       result = true;
       if (auction.expiration_time < _nearest_expire) {
         _nearest_expire = auction.expiration_time;
-        _cv_timer.notify_one();
+        change_timeout = true;
       }
     }
   }
-  _cv_empty_list.notify_one();
+  if(result) {
+    if(change_timeout) {
+      _cv_timer.notify_one();
+    }
+    _cv_empty_list.notify_one();
+  }
   return result;
 }
 
@@ -62,7 +68,7 @@ ExpiredAuctions AuctionList::collect_expired() {
 }
 
 void AuctionList::wait_for_expired() {
-  std::unique_lock lck{_mutex};
+  std::shared_lock lck{_mutex};
   // waits for at least one expired auction
   _cv_timer.wait_until(lck, _nearest_expire, [this]() {
     return this->_nearest_expire <= Clock::now();
