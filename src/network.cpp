@@ -43,6 +43,13 @@ void Network::receive_data(const uint16_t port) {
   FD_SET(server_fd, &read_fds);
   auto max_connection_id = server_fd;
 
+  char address_buffer[INET_ADDRSTRLEN];
+  inet_ntop(AF_INET, &(server_address.sin_addr), address_buffer,
+            INET_ADDRSTRLEN);
+  spdlog::info("Successfully started the server {}:{}!",
+               std::string(address_buffer, std::strlen(address_buffer)),
+               htons(server_address.sin_port));
+
   for (;;) {
     // Wait for a new connection or data on already opened sockets
     if ((select(max_connection_id + 1, &read_fds, nullptr, nullptr, nullptr)) ==
@@ -65,7 +72,7 @@ void Network::receive_data(const uint16_t port) {
 
         spdlog::info("Received new connection from {}:{}",
                      std::string(address_buffer, std::strlen(address_buffer)),
-                     client_address.sin_port);
+                     htons(client_address.sin_port));
 
         auto session_id = _next_session_id++;
         if (_database.sessions.start_session(session_id, client_fd)) {
@@ -124,12 +131,12 @@ void Network::receive_data(const uint16_t port) {
 }
 
 void Network::send_data(ConnectionId connection, const std::string &data) {
-  const auto* data_ptr = data.data();
+  const auto *data_ptr = data.data();
   std::size_t n_bytes_to_send = data.size();
   std::size_t sent_bytes = 0;
   do {
     sent_bytes = send(connection, data.data(), data.size(), 0);
-    if(sent_bytes == ERROR) {
+    if (sent_bytes == ERROR) {
       spdlog::warn("Sending data for connection {} has failed", connection);
     }
     n_bytes_to_send -= sent_bytes;
