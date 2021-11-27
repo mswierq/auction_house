@@ -22,13 +22,21 @@ public:
   Network(Database &database, TasksQueue &queue)
       : _database(database), _queue(queue) {}
 
-  void receive_data(const uint16_t port = 9999);
+  // Receives data from already connected users, waits for new connections
+  // and starts new sessions for them, closes connections and remove unused
+  // sessions when a user hangs up
+  void serve_ingress(const uint16_t port = 10000);
 
-  void send_data(ConnectionId connection, std::string&& data);
+  // Tries to send data to user with given connection id, if fails just drops
+  // the message
+  void send_data(const ConnectionId connection, std::string &&data);
+
+  //Creates new session for a new connection
+  bool create_new_session(const ConnectionId connection_id);
 
 private:
   std::list<Connection> _connections;
-  Database& _database;
+  Database &_database;
   TasksQueue &_queue;
   SessionId _next_session_id = 0;
 };

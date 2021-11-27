@@ -66,7 +66,7 @@ int main() {
   }};
 
   // Sessions processor
-  network.receive_data();
+  network.serve_ingress();
 
   auctions_proc.join();
   tasks_proc.join();
