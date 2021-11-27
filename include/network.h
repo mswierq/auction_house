@@ -31,10 +31,21 @@ public:
   // the message
   void send_data(const ConnectionId connection, std::string &&data);
 
-  //Creates new session for a new connection
-  bool create_new_session(const ConnectionId connection_id);
-
 private:
+  // Creates a new session for a new connection
+  bool _create_new_session(const ConnectionId connection_id);
+
+  // Ends a session and associated connection
+  void _end_connection(const ConnectionId connection_id,
+                       const SessionId session_id);
+
+  // Prepares a task for received data and puts it on a queue
+  void _serve_user_data(std::string &&data, const SessionId session_id);
+
+  //Goes through the active connections, reads the data and prepares tasks,
+  //closes inactive connections
+  void _scan_connections();
+
   std::list<Connection> _connections;
   Database &_database;
   TasksQueue &_queue;

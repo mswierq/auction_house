@@ -23,7 +23,8 @@ static fd_set read_fds{};
 static fd_set connected_fds{};
 static ConnectionId max_connection_id = INVALID_CONNECTION;
 
-static ConnectionId init_server(const uint16_t port) {
+//Initializes the server sockets, binds to port etc.
+static ConnectionId init_server_socket(const uint16_t port) {
   auto server_fd = socket(AF_INET, SOCK_STREAM, 0);
   if (server_fd == INVALID_CONNECTION) {
     spdlog::error("Couldn't create a server socket!");
@@ -65,11 +66,14 @@ static ConnectionId init_server(const uint16_t port) {
   return server_fd;
 }
 
+//Closes a connection
 static void close_connection(const ConnectionId connection) {
-  close(connection);
   spdlog::info("Closing connection {}!", connection);
+  close(connection);
+  FD_CLR(connection, &connected_fds);
 }
 
+//Handles a new connection
 static ConnectionId handle_new_connection(const ConnectionId server_fd) {
   if (FD_ISSET(server_fd, &read_fds)) {
     sockaddr_in client_address{};
@@ -95,73 +99,49 @@ static ConnectionId handle_new_connection(const ConnectionId server_fd) {
   return INVALID_CONNECTION;
 }
 
+// Returns user data or none when user hasn't sent anything yet, empty data
+// means data a user hung up
+std::optional<std::string> receive_data(const ConnectionId connection) {
+  std::optional<std::string> result = {};
+  if (FD_ISSET(connection, &read_fds)) {
+    spdlog::debug("Receiving data for connection {}", connection);
+    std::array<char, 1024> buffer;
+    std::string data{};
+    std::size_t n_bytes = 0;
+    if ((n_bytes = recv(connection, buffer.begin(), buffer.size(), 0)) > 0) {
+      data.append(buffer.begin(), n_bytes);
+    }
+    if (n_bytes == ERROR) {
+      spdlog::error("Something went wrong while reading data for connection {}",
+                    connection);
+    }
+    return {std::move(data)};
+  }
+  return result;
+}
+
+//Awaits for new connections or user data to receive
+void wait_for_network_traffic() {
+  spdlog::debug("Waiting for incoming connections/data!");
+  read_fds = connected_fds;
+  if ((select(max_connection_id + 1, &read_fds, nullptr, nullptr, nullptr)) ==
+      ERROR) {
+    spdlog::error("Waiting for incoming connections/data has failed!");
+  }
+}
+
 void Network::serve_ingress(const uint16_t port) {
-  auto server_fd = init_server(port);
+  auto server_socket = init_server_socket(port);
 
   for (;;) {
-    read_fds = connected_fds;
-    spdlog::debug("Waiting for incoming connections/data!");
-    // Wait for a new connection or data on already opened sockets
-    if ((select(max_connection_id + 1, &read_fds, nullptr, nullptr, nullptr)) ==
-        ERROR) {
-      spdlog::error("Waiting for incoming connections/data has failed!");
-    }
+    wait_for_network_traffic();
 
-    // Check if there is data waiting from the previously connected users
-    for (auto connection_it = _connections.begin();
-         connection_it != _connections.end();) {
-      bool remove_connection = false;
-      spdlog::debug(
-          "Check if there are data to receive for connection {} session {}!",
-          connection_it->connection, connection_it->session_id);
-      if (FD_ISSET(connection_it->connection, &read_fds)) {
-        spdlog::debug("Receiving data for connection {}",
-                      connection_it->connection);
+    _scan_connections();
 
-        // Receive data
-        std::array<char, 1024> buffer;
-        std::string data{};
-        std::size_t n_bytes = 0;
-        if ((n_bytes = recv(connection_it->connection, buffer.begin(),
-                            buffer.size(), 0)) > 0) {
-          data.append(buffer.begin(), n_bytes);
-        }
-
-        if (n_bytes < 1) { // Connection has been closed or error occurred
-          spdlog::info("Closing connection {} and session {}",
-                       connection_it->connection, connection_it->session_id);
-          close_connection(connection_it->connection);
-          FD_CLR(connection_it->connection, &connected_fds);
-          if (!_database.sessions.end_session(connection_it->session_id)) {
-            spdlog::error("Couldn't end session {} for connection {}!",
-                          connection_it->session_id, connection_it->connection);
-          }
-          remove_connection = true;
-        } else {           // Prepare task and send it to be processed
-          data.pop_back(); // remove new line sign
-          auto username =
-              _database.sessions.get_username(connection_it->session_id);
-          spdlog::debug("Creating new task for connection: {}, session: {}, "
-                        "username: {}, received data size {}!",
-                        connection_it->connection, connection_it->session_id,
-                        username.value_or(""), data.size());
-          _queue.enqueue(create_command_task(
-              {username, connection_it->session_id, std::move(data)},
-              _database));
-        }
-      }
-      if (remove_connection) {
-        connection_it = _connections.erase(connection_it);
-      } else {
-        ++connection_it;
-      }
-    }
-
-    // Handle new connection
-    auto client_connection = handle_new_connection(server_fd);
-    if (client_connection != INVALID_CONNECTION) {
-      if (!create_new_session(client_connection)) {
-        close_connection(client_connection);
+    auto new_connection = handle_new_connection(server_socket);
+    if (new_connection != INVALID_CONNECTION) {
+      if (!_create_new_session(new_connection)) {
+        close_connection(new_connection);
       }
     }
   }
@@ -183,7 +163,7 @@ void Network::send_data(const ConnectionId connection, std::string &&data) {
   } while (n_bytes_to_send > 0);
 }
 
-bool Network::create_new_session(const ConnectionId connection_id) {
+bool Network::_create_new_session(const ConnectionId connection_id) {
   auto session_id = _next_session_id++;
   if (_database.sessions.start_session(session_id, connection_id)) {
     _connections.push_back({connection_id, session_id});
@@ -195,5 +175,48 @@ bool Network::create_new_session(const ConnectionId connection_id) {
   spdlog::error("Starting new session {} for connection {} has failed!",
                 session_id, connection_id);
   return false;
+}
+
+void Network::_end_connection(const ConnectionId connection_id,
+                             const SessionId session_id) {
+  spdlog::info("Closing session {}!", session_id);
+  if (!_database.sessions.end_session(session_id)) {
+    spdlog::error("Couldn't end session {} for connection {}!", session_id,
+                  connection_id);
+  }
+  close_connection(connection_id);
+}
+
+void Network::_serve_user_data(std::string &&data, const SessionId session_id) {
+  data.pop_back(); // remove new line sign
+  auto username = _database.sessions.get_username(session_id);
+  spdlog::debug("Creating new task for session: {}, "
+                "username: {}, received data size {}!",
+                session_id, username.value_or(""), data.size());
+  _queue.enqueue(
+      create_command_task({username, session_id, std::move(data)}, _database));
+}
+
+void Network::_scan_connections() {
+  for (auto connection_it = _connections.begin();
+       connection_it != _connections.end();) {
+    spdlog::debug(
+        "Checking if there are data to receive for connection {} session {}!",
+        connection_it->connection, connection_it->session_id);
+
+    auto user_data = receive_data(connection_it->connection);
+
+    if (user_data.has_value()) {
+      auto &data = user_data.value();
+      if (data.empty()) {
+        _end_connection(connection_it->connection, connection_it->session_id);
+        connection_it = _connections.erase(connection_it);
+        continue; // go to next connection
+      } else {
+        _serve_user_data(std::move(data), connection_it->session_id);
+      }
+    }
+    ++connection_it;
+  }
 }
 } // namespace auction_engine
