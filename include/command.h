@@ -9,7 +9,7 @@
 #include <optional>
 #include <string>
 
-namespace auction_engine {
+namespace auction_house::engine {
 class Command;
 using CommandPtr = std::unique_ptr<Command>;
 
@@ -29,4 +29,4 @@ public:
 protected:
   IngressEvent _event;
 };
-} // namespace auction_engine
+} // namespace auction_house::engine

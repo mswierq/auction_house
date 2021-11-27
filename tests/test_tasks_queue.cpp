@@ -6,7 +6,7 @@
 #include <future>
 #include <vector>
 
-using namespace auction_engine;
+using namespace auction_house::engine;
 
 auto compare_events = [](auto &a, auto &b) {
   return a.session_id == b.session_id && a.data == b.data;

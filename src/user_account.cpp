@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <numeric>
 
-namespace auction_engine {
+namespace auction_house::engine {
 void Accounts::deposit_item(const std::string &username,
                             const std::string &item) {
   std::lock_guard _l(_mutex);
@@ -61,4 +61,4 @@ std::string Accounts::get_items(const std::string &username) {
                            return a.append(b);
                          });
 }
-} // namespace auction_engine
+} // namespace auction_house::engine

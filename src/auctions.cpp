@@ -4,7 +4,7 @@
 #include "auctions.h"
 #include <algorithm>
 
-namespace auction_engine {
+namespace auction_house::engine {
 
 bool AuctionList::add_auction(Auction &&auction) {
   auto result = false;
@@ -92,4 +92,4 @@ std::vector<std::string> AuctionList::get_printable_list() {
   }
   return auctions_vec;
 }
-} // namespace auction_engine
+} // namespace auction_house::engine

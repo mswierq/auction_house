@@ -6,7 +6,7 @@
 #include <catch2/catch.hpp>
 #include <spdlog/spdlog.h>
 
-using namespace auction_engine;
+using namespace auction_house::engine;
 using Catch::Matchers::Contains;
 using Catch::Matchers::UnorderedEquals;
 

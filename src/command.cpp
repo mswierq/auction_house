@@ -7,7 +7,7 @@
 #include <regex>
 #include <spdlog/spdlog.h>
 
-namespace auction_engine {
+namespace auction_house::engine {
 
 static const auto help_regex =
     std::regex("\\s+*(HELP)\\s+*", std::regex::icase);
@@ -489,4 +489,4 @@ CommandPtr Command::parse(IngressEvent &&event) {
 
   return CommandPtr{new WrongCommand{std::move(event)}};
 }
-} // namespace auction_engine
+} // namespace auction_house::engine

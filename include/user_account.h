@@ -9,7 +9,7 @@
 #include <string>
 #include <unordered_map>
 
-namespace auction_engine {
+namespace auction_house::engine {
 
 struct UserAccount {
   FundsType funds;
@@ -29,4 +29,4 @@ private:
   std::mutex _mutex;
   std::unordered_map<std::string, UserAccount> _accounts;
 };
-} // namespace auction_engine
+} // namespace auction_house::engine

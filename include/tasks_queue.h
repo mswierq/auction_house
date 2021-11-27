@@ -8,7 +8,7 @@
 #include <future>
 #include <mutex>
 
-namespace auction_engine {
+namespace auction_house::engine {
 class TasksQueue {
 public:
   void enqueue(Task &&task);
@@ -19,4 +19,4 @@ private:
   std::mutex _mutex;
   std::condition_variable _cv;
 };
-} // namespace auction_engine
+} // namespace auction_house::engine

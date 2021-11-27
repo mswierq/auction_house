@@ -4,7 +4,7 @@
 #include "session.h"
 #include <catch2/catch.hpp>
 
-using namespace auction_engine;
+using namespace auction_house::engine;
 
 TEST_CASE("Check session operators", "[Session]") {
   SessionManager manager;

@@ -1,54 +1,33 @@
 //
-// Created by mswiercz on 24.11.2021.
+// Created by mswiercz on 27.11.2021.
 //
 #pragma once
-#include "session_id.h"
-#include <list>
+#include "connection_id.h"
+#include <cstdint>
+#include <optional>
 #include <string>
 
-namespace auction_engine {
-class Database;
-class TasksQueue;
+namespace auction_house::network {
+constexpr auto MAX_CONNECTIONS = 100;
+constexpr auto INVALID_CONNECTION = -1;
+constexpr auto ERROR = -1;
 
-using ConnectionId = int; // socket desc
+// Initializes the server sockets, binds to port etc.
+ConnectionId init_server_socket(const uint16_t port);
 
-struct Connection {
-  ConnectionId connection;
-  SessionId session_id;
-};
+// Closes a connection
+void close_connection(const ConnectionId connection);
 
-class Network {
-public:
-  Network(Database &database, TasksQueue &queue)
-      : _database(database), _queue(queue) {}
+// Handles a new connection
+ConnectionId handle_new_connection(const ConnectionId server_fd);
 
-  // Receives data from already connected users, waits for new connections
-  // and starts new sessions for them, closes connections and remove unused
-  // sessions when a user hangs up
-  void serve_ingress(const uint16_t port = 10000);
+// Returns user data or none when user hasn't sent anything yet, empty data
+// means data a user hung up
+std::optional<std::string> receive_data(const ConnectionId connection);
 
-  // Tries to send data to user with given connection id, if fails just drops
-  // the message
-  void send_data(const ConnectionId connection, std::string &&data);
+// Awaits for new connections or user data to receive
+void wait_for_traffic();
 
-private:
-  // Creates a new session for a new connection
-  bool _create_new_session(const ConnectionId connection_id);
-
-  // Ends a session and associated connection
-  void _end_connection(const ConnectionId connection_id,
-                       const SessionId session_id);
-
-  // Prepares a task for received data and puts it on a queue
-  void _serve_user_data(std::string &&data, const SessionId session_id);
-
-  //Goes through the active connections, reads the data and prepares tasks,
-  //closes inactive connections
-  void _scan_connections();
-
-  std::list<Connection> _connections;
-  Database &_database;
-  TasksQueue &_queue;
-  SessionId _next_session_id = 0;
-};
-} // namespace auction_engine
+// Sends data to user, in case of an error drops it
+void send_data(ConnectionId connectionId, std::string &&data);
+} // namespace auction_house::network

@@ -2,7 +2,8 @@
 // Created by mswiercz on 19.11.2021.
 //
 #include "database.h"
-#include "events.h"
+#include "network.h"
+#include "session_processor.h"
 #include "tasks.h"
 #include "tasks_queue.h"
 #include <spdlog/spdlog.h>
@@ -11,12 +12,12 @@
 int main() {
   spdlog::set_level(spdlog::level::debug);
 
-  auction_engine::Accounts accounts;
-  auction_engine::AuctionList auctions;
-  auction_engine::SessionManager sessions;
-  auction_engine::Database database{accounts, auctions, sessions};
-  auction_engine::TasksQueue queue;
-  auction_engine::Network network{database, queue};
+  auction_house::engine::Accounts accounts;
+  auction_house::engine::AuctionList auctions;
+  auction_house::engine::SessionManager sessions;
+  auction_house::engine::Database database{accounts, auctions, sessions};
+  auction_house::engine::TasksQueue queue;
+  auction_house::engine::SessionProcessor session_proc{database, queue};
 
   // Auctions processor
   std::thread auctions_proc{[&database, &queue]() {
@@ -27,8 +28,8 @@ int main() {
       spdlog::debug("Collected {} expired auctions", expired_list.size());
 
       for (auto &auction : expired_list) {
-        auto notify_seller =
-            auction_engine::create_auction_task(std::move(auction), database);
+        auto notify_seller = auction_house::engine::create_auction_task(
+            std::move(auction), database);
 
         queue.enqueue(std::move(notify_seller));
       }
@@ -36,7 +37,7 @@ int main() {
   }};
 
   // Tasks processor
-  std::thread tasks_proc{[&database, &queue, &network]() {
+  std::thread tasks_proc{[&database, &queue]() {
     for (;;) {
       auto task = queue.pop();
       task.wait();
@@ -49,8 +50,10 @@ int main() {
               database.sessions.get_connection_id(event.session_id.value());
           if (connection.has_value()) {
             auto connection_id = connection.value();
-            spdlog::debug("Sending reply to session {}, connection {}, data {}", session_id, connection_id, event.data);
-            network.send_data(connection_id, std::move(event.data));
+            spdlog::debug("Sending reply to session {}, connection {}, data {}",
+                          session_id, connection_id, event.data);
+            auction_house::network::send_data(connection_id,
+                                              std::move(event.data));
           } else {
             spdlog::debug("Dropping event, lack of connection "
                           "for session {}, data: {}",
@@ -66,7 +69,7 @@ int main() {
   }};
 
   // Sessions processor
-  network.serve_ingress();
+  session_proc.serve_ingress();
 
   auctions_proc.join();
   tasks_proc.join();

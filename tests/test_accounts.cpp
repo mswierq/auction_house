@@ -6,7 +6,7 @@
 #include <catch2/catch.hpp>
 #include <future>
 
-using namespace auction_engine;
+using namespace auction_house::engine;
 
 TEST_CASE("Create a new user account", "[Accounts]") {
   Accounts accounts;

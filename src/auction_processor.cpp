@@ -4,7 +4,7 @@
 #include "auction_processor.h"
 #include "database.h"
 
-namespace auction_engine {
+namespace auction_house::engine {
 
 EgressEvent process_auction(Database &database, Auction &&auction) {
   auto seller_session = database.sessions.get_session_id(auction.owner);
@@ -48,4 +48,4 @@ EgressEvent process_auction(Database &database, Auction &&auction) {
   };
 }
 
-} // namespace auction_engine
+} // namespace auction_house::engine

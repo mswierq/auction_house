@@ -11,7 +11,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace auction_engine {
+namespace auction_house::engine {
 using AuctionId = std::uint64_t;
 using Clock = std::chrono::steady_clock;
 using TimePoint = std::chrono::time_point<Clock>;
@@ -59,4 +59,4 @@ private:
   AuctionId _next_id = 0;
   TimePoint _nearest_expire = TimePoint::max();
 };
-} // namespace auction_engine
+} // namespace auction_house::engine

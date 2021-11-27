@@ -4,6 +4,6 @@
 #pragma once
 #include <cstdint>
 
-namespace auction_engine {
+namespace auction_house::engine {
 using SessionId = std::uint32_t;
 }

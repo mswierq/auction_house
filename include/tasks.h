@@ -5,7 +5,7 @@
 #include "events.h"
 #include <future>
 
-namespace auction_engine {
+namespace auction_house::engine {
 class Database;
 class Auction;
 
@@ -16,4 +16,4 @@ Task create_command_task(IngressEvent &&event, Database &database);
 
 // Consumes an expired auction and returns a task that process it
 Task create_auction_task(Auction &&auction, Database &database);
-} // namespace auction_engine
+} // namespace auction_house::engine

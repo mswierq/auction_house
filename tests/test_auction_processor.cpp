@@ -5,7 +5,7 @@
 #include "database.h"
 #include <catch2/catch.hpp>
 
-using namespace auction_engine;
+using namespace auction_house::engine;
 
 TEST_CASE("Test processing expired auctions", "[AuctionProcessor]") {
   SessionManager sessions;

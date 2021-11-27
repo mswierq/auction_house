@@ -2,14 +2,14 @@
 // Created by mswiercz on 23.11.2021.
 //
 #pragma once
-#include "network.h"
 #include "session_id.h"
+#include "connection_id.h"
 #include <optional>
 #include <shared_mutex>
 #include <string>
 #include <unordered_map>
 
-namespace auction_engine {
+namespace auction_house::engine {
 struct Session {
   ConnectionId connection;
   std::optional<std::string> username;
@@ -45,4 +45,4 @@ private:
   std::unordered_map<std::string, SessionId> _logged_users;
   std::shared_mutex _mutex;
 };
-} // namespace auction_engine
+} // namespace auction_house::engine

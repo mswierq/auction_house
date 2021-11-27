@@ -3,7 +3,7 @@
 //
 #include "tasks_queue.h"
 
-namespace auction_engine {
+namespace auction_house::engine {
 void TasksQueue::enqueue(Task&& task) {
   {
     std::lock_guard _l {_mutex};

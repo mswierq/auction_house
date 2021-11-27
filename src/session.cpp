@@ -4,7 +4,7 @@
 #include "session.h"
 #include <mutex>
 
-namespace auction_engine {
+namespace auction_house::engine {
 bool SessionManager::start_session(const SessionId id,
                                    const ConnectionId conn_id) {
   std::unique_lock _l{_mutex};
@@ -86,4 +86,4 @@ SessionManager::get_connection_id(const SessionId id) {
   }
   return {};
 }
-} // namespace auction_engine
+} // namespace auction_house::engine

@@ -5,7 +5,7 @@
 #include <catch2/catch.hpp>
 #include <thread>
 
-using namespace auction_engine;
+using namespace auction_house::engine;
 using Catch::Matchers::UnorderedEquals;
 
 auto auction_equal = [](const Auction &a, const Auction &b) {

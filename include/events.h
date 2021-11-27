@@ -6,7 +6,7 @@
 #include "session_id.h"
 #include <optional>
 
-namespace auction_engine {
+namespace auction_house::engine {
 struct IngressEvent {
   // This is set when a user is logged in
   std::optional<std::string> username;
@@ -21,4 +21,4 @@ struct EgressEvent {
   std::optional<SessionId> session_id;
   std::string data;
 };
-} // namespace auction_engine
+} // namespace auction_house::engine

@@ -6,7 +6,7 @@
 #include "command.h"
 #include "database.h"
 
-namespace auction_engine {
+namespace auction_house::engine {
 Task create_command_task(IngressEvent &&event, Database &database) {
   return std::async(
       std::launch::deferred,
@@ -24,4 +24,4 @@ Task create_auction_task(Auction &&auction, Database &database) {
       },
       std::move(auction));
 }
-} // namespace auction_engine
+} // namespace auction_house::engine

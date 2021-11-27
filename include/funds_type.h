@@ -5,7 +5,7 @@
 #include <cstdint>
 #include <string>
 
-namespace auction_engine {
+namespace auction_house::engine {
 using FundsType = std::uint64_t;
 #define parse_funds(funds) std::stoull(funds)
 }
