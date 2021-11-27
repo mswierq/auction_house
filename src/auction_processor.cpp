@@ -25,9 +25,7 @@ EgressEvent process_auction(Database &database, Auction &&auction) {
       // doesn't handle the result there has to be capacity for the just
       // withdrawn funds, the tasks from all users and auctions are being
       // processed in FIFO order
-      if (!database.accounts.deposit_funds(buyer, auction.price)) {
-        // TODO error log here
-      }
+      database.accounts.deposit_funds(buyer, auction.price);
       database.accounts.deposit_item(auction.owner, auction.item);
       return {seller_session,
               "Your item: " + auction.item +

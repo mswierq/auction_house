@@ -2,11 +2,13 @@
 // Created by mswiercz on 24.11.2021.
 //
 #include "command.h"
+#include "connection_id.h"
 #include "database.h"
 #include <catch2/catch.hpp>
 #include <spdlog/spdlog.h>
 
 using namespace auction_house::engine;
+using auction_house::ConnectionId;
 using Catch::Matchers::Contains;
 using Catch::Matchers::UnorderedEquals;
 
@@ -73,19 +75,20 @@ TEST_CASE("Test execution of user account related commands", "[Commands]") {
     event.data = "HELP";
     auto egress_event = Command::parse(std::move(event))->execute(database);
     REQUIRE(egress_event.session_id == session_id);
-    REQUIRE(egress_event.data == "Welcome, available commands:\n"
-                                 "\tHELP\n"
-                                 "\tLOGIN <username>\n"
-                                 "\tLOGOUT\n"
-                                 "\tDEPOSIT FUNDS <amount>\n"
-                                 "\tDEPOSIT ITEM <item>\n"
-                                 "\tWITHDRAWS FUNDS <amount>\n"
-                                 "\tWITHDRAWS FUNDS <item>\n"
-                                 "\tSELL <item> <starting-price> [<expiration-time>]\n"
-                                 "\tBID <auction-id> <new-price>\n"
-                                 "\tSHOW FUNDS\n"
-                                 "\tSHOW ITEMS\n"
-                                 "\tSHOW SALES");
+    REQUIRE(egress_event.data ==
+            "Welcome, available commands:\n"
+            "\tHELP\n"
+            "\tLOGIN <username>\n"
+            "\tLOGOUT\n"
+            "\tDEPOSIT FUNDS <amount>\n"
+            "\tDEPOSIT ITEM <item>\n"
+            "\tWITHDRAWS FUNDS <amount>\n"
+            "\tWITHDRAWS FUNDS <item>\n"
+            "\tSELL <item> <starting-price> [<expiration-time>]\n"
+            "\tBID <auction-id> <new-price>\n"
+            "\tSHOW FUNDS\n"
+            "\tSHOW ITEMS\n"
+            "\tSHOW SALES");
   }
 
   SECTION("Funds deposits") {
