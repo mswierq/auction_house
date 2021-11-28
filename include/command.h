@@ -22,6 +22,7 @@ public:
   // Consume the event and return a command executor
   static CommandPtr parse(IngressEvent &&event);
 
+  // Executes the parsed command
   virtual EgressEvent execute(Database &database) = 0;
 
   virtual ~Command() = default;

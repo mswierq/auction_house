@@ -9,30 +9,28 @@
 
 namespace auction_house::engine {
 
-static const auto help_regex =
-    std::regex("\\s+*(HELP)\\s+*", std::regex::icase);
-static const auto login_regex =
-    std::regex("\\s+*(LOGIN)\\s+(\\w+)\\s+*", std::regex::icase);
-static const auto logout_regex =
-    std::regex("\\s+*(LOGOUT)\\s+*", std::regex::icase);
-static const auto deposit_funds_regex =
-    std::regex("\\s+*(DEPOSIT)\\s+(FUNDS)\\s+(\\d+)\\s+*", std::regex::icase);
-static const auto deposit_item_regex =
-    std::regex("\\s+*(DEPOSIT)\\s+(ITEM)\\s+(\\w+)\\s+*", std::regex::icase);
-static const auto withdraw_funds_regex =
-    std::regex("\\s+*(WITHDRAW)\\s+(FUNDS)\\s+(\\d+)\\s+*", std::regex::icase);
-static const auto withdraw_item_regex =
-    std::regex("\\s+*(WITHDRAW)\\s+(ITEM)\\s+(\\w+)\\s+*", std::regex::icase);
-static const auto sell_regex = std::regex(
-    "\\s+*(SELL)\\s+(\\w+)\\s+(\\d+)\\s+*(\\d+)?\\s+*", std::regex::icase);
-static const auto bid_regex =
-    std::regex("\\s+*(BID)\\s+(\\d+)\\s+(\\d+)\\s+*", std::regex::icase);
-static const auto show_funds_regex =
-    std::regex("\\s+*(SHOW)\\s+(FUNDS)\\s+*", std::regex::icase);
-static const auto show_items_regex =
-    std::regex("\\s+*(SHOW)\\s+(ITEMS)\\s+*", std::regex::icase);
-static const auto show_sales_regex =
-    std::regex("\\s+*(SHOW)\\s+(SALES)\\s+*", std::regex::icase);
+static const std::regex help_regex{"\\s+*(HELP)\\s+*", std::regex::icase};
+static const std::regex login_regex{"\\s+*(LOGIN)\\s+(\\w+)\\s+*",
+                                    std::regex::icase};
+static const std::regex logout_regex{"\\s+*(LOGOUT)\\s+*", std::regex::icase};
+static const std::regex deposit_funds_regex{
+    "\\s+*(DEPOSIT)\\s+(FUNDS)\\s+(\\d+)\\s+*", std::regex::icase};
+static const std::regex deposit_item_regex{
+    "\\s+*(DEPOSIT)\\s+(ITEM)\\s+(\\w+)\\s+*", std::regex::icase};
+static const std::regex withdraw_funds_regex{
+    "\\s+*(WITHDRAW)\\s+(FUNDS)\\s+(\\d+)\\s+*", std::regex::icase};
+static const std::regex withdraw_item_regex{
+    "\\s+*(WITHDRAW)\\s+(ITEM)\\s+(\\w+)\\s+*", std::regex::icase};
+static const std::regex sell_regex{
+    "\\s+*(SELL)\\s+(\\w+)\\s+(\\d+)\\s+*(\\d+)?\\s+*", std::regex::icase};
+static const std::regex bid_regex{"\\s+*(BID)\\s+(\\d+)\\s+(\\d+)\\s+*",
+                                  std::regex::icase};
+static const std::regex show_funds_regex{"\\s+*(SHOW)\\s+(FUNDS)\\s+*",
+                                         std::regex::icase};
+static const std::regex show_items_regex{"\\s+*(SHOW)\\s+(ITEMS)\\s+*",
+                                         std::regex::icase};
+static const std::regex show_sales_regex{"\\s+*(SHOW)\\s+(SALES)\\s+*",
+                                         std::regex::icase};
 
 class HelpCommand : public Command {
 public:
@@ -111,6 +109,8 @@ public:
   }
 };
 
+// Another base class that implements access check before running the actual
+// command
 class LimitedAccess : public Command {
 public:
   LimitedAccess(IngressEvent &&event) : Command(std::move(event)) {}
@@ -121,7 +121,7 @@ public:
                    _event.data);
       return {_event.session_id, "You are not logged in!"};
     }
-    return execute_impl(database);
+    return execute_impl(database); // run the actual command
   }
 
 protected:
