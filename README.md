@@ -55,7 +55,7 @@ There are following data structures:
 
 ## Project
 
-This is a CMake based project.
+This is a CMake based project, **which was developed and tested under Linux**.
 
 ### Libraries
 Used libraries in the project:
@@ -101,3 +101,9 @@ To change the default **10000** port or set the logs level to debug, you can add
 ```bash
 ./auction_house --port <port> --debug
 ```
+
+### Windows support
+
+This project has been successfully build on Windows machine using Visual Studio 2019 16.11.
+
+Unfortunately there are still some bugs that deteriorates user expierence. Please, use Putty as telnet client and set Telnet negotiation mode to **Passive**.
