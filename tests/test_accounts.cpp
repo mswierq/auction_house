@@ -5,6 +5,7 @@
 #include <array>
 #include <catch2/catch.hpp>
 #include <future>
+#include <numeric>
 
 using namespace auction_house::engine;
 

@@ -9,27 +9,27 @@
 
 namespace auction_house::engine {
 
-static const std::regex help_regex{"\\s+*(HELP)\\s+*", std::regex::icase};
-static const std::regex login_regex{"\\s+*(LOGIN)\\s+(\\w+)\\s+*",
+static const std::regex help_regex{R"(\s*(HELP)\s*)", std::regex::icase};
+static const std::regex login_regex{R"(\s*(LOGIN)\s+(\w+)\s*)",
                                     std::regex::icase};
-static const std::regex logout_regex{"\\s+*(LOGOUT)\\s+*", std::regex::icase};
+static const std::regex logout_regex{R"(\s*(LOGOUT)\s*)", std::regex::icase};
 static const std::regex deposit_funds_regex{
-    "\\s+*(DEPOSIT)\\s+(FUNDS)\\s+(\\d+)\\s+*", std::regex::icase};
+    R"(\s*(DEPOSIT)\s+(FUNDS)\s+(\d+)\s*)", std::regex::icase};
 static const std::regex deposit_item_regex{
-    "\\s+*(DEPOSIT)\\s+(ITEM)\\s+(\\w+)\\s+*", std::regex::icase};
+    R"(\s*(DEPOSIT)\s+(ITEM)\s+(\w+)\s*)", std::regex::icase};
 static const std::regex withdraw_funds_regex{
-    "\\s+*(WITHDRAW)\\s+(FUNDS)\\s+(\\d+)\\s+*", std::regex::icase};
+    R"(\s*(WITHDRAW)\s+(FUNDS)\s+(\d+)\s*)", std::regex::icase};
 static const std::regex withdraw_item_regex{
-    "\\s+*(WITHDRAW)\\s+(ITEM)\\s+(\\w+)\\s+*", std::regex::icase};
+    R"(\s*(WITHDRAW)\s+(ITEM)\s+(\w+)\s*)", std::regex::icase};
 static const std::regex sell_regex{
-    "\\s+*(SELL)\\s+(\\w+)\\s+(\\d+)\\s+*(\\d+)?\\s+*", std::regex::icase};
-static const std::regex bid_regex{"\\s+*(BID)\\s+(\\d+)\\s+(\\d+)\\s+*",
+    R"(\s*(SELL)\s+(\w+)\s+(\d+)\s*(\d+)?\s*)", std::regex::icase};
+static const std::regex bid_regex{R"(\s*(BID)\s+(\d+)\s+(\d+)\s*)",
                                   std::regex::icase};
-static const std::regex show_funds_regex{"\\s+*(SHOW)\\s+(FUNDS)\\s+*",
+static const std::regex show_funds_regex{R"(\s*(SHOW)\s+(FUNDS)\s*)",
                                          std::regex::icase};
-static const std::regex show_items_regex{"\\s+*(SHOW)\\s+(ITEMS)\\s+*",
+static const std::regex show_items_regex{R"(\s*(SHOW)\s+(ITEMS)\s*)",
                                          std::regex::icase};
-static const std::regex show_sales_regex{"\\s+*(SHOW)\\s+(SALES)\\s+*",
+static const std::regex show_sales_regex{R"(\s*(SHOW)\s+(SALES)\s*)",
                                          std::regex::icase};
 
 class HelpCommand : public Command {

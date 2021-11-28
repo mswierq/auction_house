@@ -10,7 +10,6 @@
 namespace auction_house::network {
 constexpr auto MAX_CONNECTIONS = 100;
 constexpr auto INVALID_CONNECTION = -1;
-constexpr auto ERROR = -1;
 
 // Initializes the server sockets, binds to port etc.
 ConnectionId init_server_socket(const uint16_t port);

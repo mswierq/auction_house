@@ -7,6 +7,8 @@
 
 using namespace auction_house::engine;
 
+constexpr auto MAX_FUNDS = std::numeric_limits<FundsType>::max();
+
 TEST_CASE("Test processing expired auctions", "[AuctionProcessor]") {
   SessionManager sessions;
   AuctionList auctions;
@@ -43,15 +45,14 @@ TEST_CASE("Test processing expired auctions", "[AuctionProcessor]") {
       }
 
       SECTION("and cannot accept the payment") {
-        auto max_funds = std::numeric_limits<FundsType>::max();
-        REQUIRE(accounts.deposit_funds(seller, max_funds));
+        REQUIRE(accounts.deposit_funds(seller, MAX_FUNDS));
 
         auto seller_event = process_auction(database, std::move(auction));
         REQUIRE(seller_event.session_id == seller_session);
         REQUIRE(seller_event.data == "Your item: item, hasn't been sold! You "
                                      "didn't accept the payment from " +
                                          buyer + "!");
-        REQUIRE(accounts.get_funds(seller) == max_funds);
+        REQUIRE(accounts.get_funds(seller) == MAX_FUNDS);
         REQUIRE(accounts.get_items(buyer).empty());
         REQUIRE(accounts.get_items(seller) == item);
         REQUIRE(accounts.get_funds(buyer) == funds);

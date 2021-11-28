@@ -53,7 +53,9 @@ void SessionProcessor::_end_connection(const ConnectionId connection_id,
 
 void SessionProcessor::_serve_user_data(std::string &&data,
                                         const SessionId session_id) {
-  data.pop_back(); // remove new line sign
+  if (data.back() == '\n') {
+    data.pop_back();
+  }
   auto username = _database.sessions.get_username(session_id);
   spdlog::debug("Creating new task for session: {}, "
                 "username: {}, received data size {}!",

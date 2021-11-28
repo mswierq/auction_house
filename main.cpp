@@ -9,6 +9,9 @@
 #include <iostream>
 #include <spdlog/spdlog.h>
 #include <thread>
+#ifdef WIN32
+#include <winsock.h>
+#endif
 
 std::uint16_t parse_arguments(int argc, char *argv[]) {
   spdlog::set_level(spdlog::level::info);
@@ -112,4 +115,7 @@ int main(int argc, char *argv[]) {
 
   auctions_proc.join();
   tasks_proc.join();
+  #ifdef WIN32
+  WSACleanup();
+  #endif
 }
