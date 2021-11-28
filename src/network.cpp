@@ -6,7 +6,7 @@
 #include <sys/types.h>
 #include <array>
 #include <algorithm>
-#ifdef UNIX
+#ifndef WIN32
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
@@ -63,7 +63,7 @@ ConnectionId init_server_socket(const uint16_t port) {
   FD_ZERO(&connected_fds);
   FD_SET(server_fd, &connected_fds);
 
-  #ifdef UNIX
+  #ifndef WIN32
   char address_buffer[INET_ADDRSTRLEN];
   inet_ntop(AF_INET, &(server_address.sin_addr), address_buffer,
             INET_ADDRSTRLEN);
@@ -91,7 +91,7 @@ ConnectionId handle_new_connection(const ConnectionId server_fd) {
         server_fd, reinterpret_cast<sockaddr *>(&client_address), &sin_size);
 
     if (client_fd != SOCKET_ERROR) {
-      #ifdef UNIX
+      #ifndef WIN32
       char address_buffer[INET_ADDRSTRLEN];
       inet_ntop(AF_INET, &(client_address.sin_addr), address_buffer,
                 INET_ADDRSTRLEN);
@@ -101,7 +101,7 @@ ConnectionId handle_new_connection(const ConnectionId server_fd) {
       #endif
 
       FD_SET(client_fd, &connected_fds);
-      #ifdef UNIX
+      #ifndef WIN32
       max_connection_id = std::max(max_connection_id, client_fd);
       #else
       max_connection_id = max(max_connection_id, client_fd);
