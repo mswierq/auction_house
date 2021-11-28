@@ -94,9 +94,10 @@ std::optional<std::string> receive_data(const ConnectionId connection) {
     std::array<char, 1024> buffer;
     std::string data{};
     std::size_t n_bytes = 0;
-    if ((n_bytes = recv(connection, buffer.begin(), buffer.size(), 0)) > 0) {
-      data.append(buffer.begin(), n_bytes);
-    }
+    do {
+      n_bytes = recv(connection, buffer.data(), buffer.size(), 0);
+      data.append(buffer.data(), n_bytes);
+    } while(data.back() != '\n' && n_bytes == buffer.size());
     if (n_bytes == ERROR) {
       spdlog::error("Something went wrong while reading data for connection {}",
                     connection);
