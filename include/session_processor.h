@@ -24,7 +24,7 @@ public:
   // Receives data from already connected users, waits for new connections
   // and starts new sessions for them, closes connections and remove unused
   // sessions when a user hangs up
-  void serve_ingress(const uint16_t port = 10000);
+  void serve_ingress(const uint16_t port);
 
 private:
   // Creates a new session for a new connection

@@ -6,11 +6,50 @@
 #include "session_processor.h"
 #include "tasks.h"
 #include "tasks_queue.h"
+#include <iostream>
 #include <spdlog/spdlog.h>
 #include <thread>
 
-int main() {
-  spdlog::set_level(spdlog::level::debug);
+std::uint16_t parse_arguments(int argc, char *argv[]) {
+  spdlog::set_level(spdlog::level::info);
+  auto port = 10000; // default
+  try {
+    if (argc < 5) {
+      auto read_port = false;
+      for (auto i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--debug") == 0 && read_port == false) {
+          spdlog::set_level(spdlog::level::debug);
+        } else if (std::strcmp(argv[i], "--port") == 0 && read_port == false) {
+          read_port = true;
+        } else if (read_port) {
+          auto parsed_port =
+              std::stoul(std::string{argv[i], std::strlen(argv[i])});
+          if (parsed_port > 65535) {
+            throw std::out_of_range{""};
+          }
+          port = static_cast<std::uint16_t>(parsed_port);
+          read_port = false;
+        } else {
+          throw std::invalid_argument{""};
+        }
+      }
+      if (read_port) {
+        throw std::invalid_argument{""};
+      }
+    }
+  } catch (std::invalid_argument &) {
+    std::cerr << "Wrong arguments! Allowed: [--port <port>] [--debug]"
+              << std::endl;
+    std::exit(1);
+  } catch (std::out_of_range &) {
+    std::cerr << "Incorrect port number!" << std::endl;
+    std::exit(1);
+  }
+  return port;
+}
+
+int main(int argc, char *argv[]) {
+  auto port = parse_arguments(argc, argv);
 
   auction_house::engine::Accounts accounts;
   auction_house::engine::AuctionList auctions;
@@ -69,7 +108,7 @@ int main() {
   }};
 
   // Sessions processor
-  session_proc.serve_ingress();
+  session_proc.serve_ingress(port);
 
   auctions_proc.join();
   tasks_proc.join();
